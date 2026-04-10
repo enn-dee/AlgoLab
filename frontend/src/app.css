@@ -1,0 +1,104 @@
+:root {
+    --bg-primary: #0D1117;
+    /* main background */
+    --bg-secondary: #161B22;
+    /* cards / panels */
+    --bg-tertiary: #1F2630;
+    /* elevated sections */
+    --bg-hover: #262F3A;
+    /* hover state */
+
+
+    --gradient-main: linear-gradient(135deg, #0F172A, #1E293B);
+
+    --accent-primary: #3B82F6;
+    /* blue */
+    --accent-secondary: #6366F1;
+    /* indigo */
+    --accent-glow: #60A5FA;
+    /* lighter glow */
+
+
+
+    --success: #22C55E;
+    --success-soft: #4ADE80;
+    --success-bg: rgba(34, 197, 94, 0.15);
+
+
+
+
+    --warning: #F59E0B;
+    --warning-soft: #FBBF24;
+    --warning-bg: rgba(245, 158, 11, 0.15);
+
+
+
+    --error: #EF4444;
+    --error-soft: #F87171;
+    --error-bg: rgba(239, 68, 68, 0.15);
+
+
+
+
+    --text-primary: #E6EDF3;
+    /* main text */
+    --text-secondary: #9CA3AF;
+    /* descriptions */
+    --text-muted: #6B7280;
+    /* subtle text */
+    --text-accent: #3B82F6;
+    /* highlighted text */
+
+
+
+
+    --border-primary: #30363D;
+    --border-soft: #21262D;
+
+
+    /* animation colors */
+
+    --array-default: #334155;
+    --array-active: #3B82F6;
+    --array-compare: #F59E0B;
+    --array-found: #22C55E;
+    --array-swap: #EF4444;
+
+
+
+    /* code editor themes */
+
+    --code-bg: #0B0F14;
+    --code-line: #1F2937;
+    --code-keyword: #C792EA;
+    --code-function: #82AAFF;
+    --code-string: #C3E88D;
+    --code-comment: #6B7280;
+
+
+
+
+    /* glass card */
+
+    --card-bg: rgba(22, 27, 34, 0.7);
+    --card-blur: blur(10px);
+
+
+
+    /* Headings */
+    --text-xl: 28px;
+    /* Page titles */
+    --text-lg: 22px;
+    /* Section titles */
+    --text-md: 18px;
+    /* Card titles */
+
+    /* Body */
+    --text-base: 14px;
+    /* Normal text */
+    --text-sm: 12px;
+    /* Secondary text */
+
+    /* Code */
+    --text-code: 13px;
+}
