@@ -2,13 +2,18 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../ui/button';
 import { ChevronLeft } from 'lucide-react';
-
+import InfoTab from './TabsLayout/InfoTab';
+import VisualTab from './TabsLayout/VisualTab';
+import CodeTab from './TabsLayout/CodeTab';
+import Tabs from './TabsLayout/Tabs';
+import { motion } from "motion/react"
 function AlgoWorkspace() {
     const { id } = useParams();
 
     const navigate = useNavigate();
     const [data, setData] = useState([])
     const [activeTab, setActiveTab] = useState("info");
+    const [markAsRead, setMarkAsRead] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -25,57 +30,42 @@ function AlgoWorkspace() {
     }, []);
 
     const algo = data.find((item) => item.id === id);
+    if (!algo) return <div>Loading...</div>
     return (
         <div className='flex flex-col gap-3'>
             <Button onClick={() => navigate("/")} className={` w-max`}>
                 <ChevronLeft className='' />
             </Button>
+
+
             <div className={`bg-[var(--bg-primary)] p-4 rounded-md`}>
 
+                <Tabs activeTab={activeTab} setActiveTab={setActiveTab} markAsRead={markAsRead} />
 
-                <div className="w-full flex gap-2  p-2 ">
-
-                    <Button
-                        onClick={() => setActiveTab("info")}
-                        className={activeTab === "info" ? "bg-[var(--bg-secondary)] border-blue-200/80" : ""}
-                    >
-                        Info
-                    </Button>
-
-                    <Button
-                        onClick={() => setActiveTab("flow")}
-                        className={activeTab === "flow" ? "bg-[var(--bg-secondary)] border-blue-200/80" : ""}
-                    >
-                        FlowChart
-                    </Button>
-
-                    <Button
-                        onClick={() => setActiveTab("code")}
-                        className={activeTab === "code" ? "bg-[var(--bg-secondary)] border-blue-200/80" : ""}
-                    >
-                        CodeEditor
-                    </Button>
-                </div>
 
                 <div className="mt-4">
                     {activeTab === "info" && (
-                        <div>
-                            <h1 className="text-xl font-bold">{algo?.header}</h1>
-                            <p className="mt-2">{algo?.description}</p>
-                        </div>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.5, ease: "easeInOut" }}
+                            viewport={{ once: true }}
+                        >
+
+                            <InfoTab algo={algo} setMarkAsRead={setMarkAsRead} />
+                        </motion.div>
                     )}
 
                     {activeTab === "flow" && (
                         <div>
-                            <h2 className="font-bold">Flow Visualization</h2>
-                            <p>Coming soon: step-by-step algorithm animation</p>
+                           <VisualTab algo={algo} />
                         </div>
                     )}
 
                     {activeTab === "code" && (
                         <div>
-                            <h2 className="font-bold">Code Editor</h2>
-                            <p>Coming soon: Monaco Editor / CodeMirror</p>
+                            <CodeTab algo={algo} />
                         </div>
                     )}
                 </div>

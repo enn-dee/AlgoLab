@@ -1,0 +1,46 @@
+import { Button } from '@/components/ui/button'
+import { ChartBar, ChartSpline, Code, Text } from 'lucide-react'
+import React from 'react'
+import toast from 'react-hot-toast'
+
+function Tabs({ activeTab, setActiveTab, markAsRead }) {
+
+    const handleTabChange = (tab) => {
+        if (!markAsRead && tab !== "info") {
+            toast.error("Complete Info tab first to unlock other sections.")
+            return;
+        }
+        setActiveTab(tab)
+    }
+    return (
+        <div className="w-full flex gap-2  p-2 ">
+
+            <Button
+                onClick={() => handleTabChange("info")}
+                className={activeTab === "info" ? "bg-[var(--bg-secondary)] border-blue-200/80" : ""}
+            >
+                Info <Text/>
+            </Button>
+
+            <Button
+                onClick={() => handleTabChange("flow")}
+                className={activeTab === "flow" ? "bg-[var(--bg-secondary)] border-blue-200/80" : ""}
+
+
+            >
+                FlowChart <ChartSpline/>
+            </Button>
+
+            <Button
+                onClick={() => handleTabChange("code")}
+                className={activeTab === "code" ? "bg-[var(--bg-secondary)] border-blue-200/80" : ""}
+                // disabled={!markAsRead && activeTab === "info"}
+
+            >
+                CodeEditor <Code/>
+            </Button>
+        </div>
+    )
+}
+
+export default Tabs

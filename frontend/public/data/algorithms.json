@@ -2,71 +2,298 @@
     {
         "id": "linear-search",
         "header": "Linear Search",
-        "description": "Sequentially checks each element in a list until the target is found or the list ends.",
         "category": "Searching",
-        "verified": false
+        "overview": "What is Linear Search? Linear Search is a simple searching algorithm that checks each element in a list sequentially until the target element is found or the list ends.",
+        "keyPoints": [
+            "Works on unsorted data",
+            "Checks elements one by one",
+            "No preprocessing required",
+            "Stops when element is found",
+            "Simple but inefficient"
+        ],
+        "complexity": {
+            "best": "O(1)",
+            "average": "O(n)",
+            "worst": "O(n)",
+            "space": "O(1)"
+        },
+        "prosCons": {
+            "pros": [
+                "Works on unsorted arrays",
+                "Very easy to implement",
+                "No extra memory required"
+            ],
+            "cons": [
+                "Slow for large datasets",
+                "Not efficient compared to binary search"
+            ]
+        }
     },
     {
         "id": "binary-search",
         "header": "Binary Search",
-        "description": "Efficiently finds an element in a sorted array by repeatedly dividing the search interval in half.",
         "category": "Searching",
-        "verified": true
+        "overview": "What is Binary Search? Binary Search is an efficient searching algorithm that works on sorted arrays by repeatedly dividing the search space into halves to quickly locate a target element.",
+        "keyPoints": [
+            "Requires sorted array",
+            "Divides search space into halves",
+            "Uses middle element comparison",
+            "Eliminates half data each step",
+            "Highly efficient"
+        ],
+        "complexity": {
+            "best": "O(1)",
+            "average": "O(log n)",
+            "worst": "O(log n)",
+            "space": "O(1)"
+        },
+        "prosCons": {
+            "pros": [
+                "Very fast for large datasets",
+                "Efficient and optimal",
+                "Reduces search space quickly"
+            ],
+            "cons": [
+                "Only works on sorted arrays",
+                "Not suitable for dynamic data"
+            ]
+        }
     },
     {
         "id": "bubble-sort",
         "header": "Bubble Sort",
-        "description": "Repeatedly swaps adjacent elements if they are in the wrong order until the array is sorted.",
         "category": "Sorting",
-        "verified": true
+        "overview": "What is Bubble Sort? Bubble Sort is a simple sorting algorithm that repeatedly compares adjacent elements and swaps them if they are in the wrong order, causing larger elements to move to the end.",
+        "keyPoints": [
+            "Compares adjacent elements",
+            "Swaps when needed",
+            "Multiple passes required",
+            "Largest elements move to end",
+            "Stops when no swaps"
+        ],
+        "complexity": {
+            "best": "O(n)",
+            "average": "O(n^2)",
+            "worst": "O(n^2)",
+            "space": "O(1)"
+        },
+        "prosCons": {
+            "pros": [
+                "Easy to understand",
+                "No extra memory needed",
+                "Stable sorting"
+            ],
+            "cons": [
+                "Very slow for large datasets",
+                "Inefficient algorithm"
+            ]
+        }
     },
     {
         "id": "selection-sort",
         "header": "Selection Sort",
-        "description": "Finds the smallest element and places it at the beginning, repeating for remaining elements.",
         "category": "Sorting",
-        "verified": true
+        "overview": "What is Selection Sort? Selection Sort is a sorting algorithm that repeatedly selects the smallest element from the unsorted portion and places it at the beginning.",
+        "keyPoints": [
+            "Finds minimum element",
+            "Swaps with first unsorted",
+            "Reduces unsorted portion",
+            "Simple logic",
+            "In-place sorting"
+        ],
+        "complexity": {
+            "best": "O(n^2)",
+            "average": "O(n^2)",
+            "worst": "O(n^2)",
+            "space": "O(1)"
+        },
+        "prosCons": {
+            "pros": [
+                "Simple implementation",
+                "Fewer swaps",
+                "In-place"
+            ],
+            "cons": [
+                "Inefficient for large data",
+                "Not stable"
+            ]
+        }
     },
     {
         "id": "insertion-sort",
         "header": "Insertion Sort",
-        "description": "Builds a sorted array one element at a time by inserting elements into correct position.",
         "category": "Sorting",
-        "verified": true
+        "overview": "What is Insertion Sort? Insertion Sort is a sorting algorithm that builds a sorted array one element at a time by inserting elements into their correct positions.",
+        "keyPoints": [
+            "Builds sorted portion gradually",
+            "Inserts elements correctly",
+            "Shifts elements when needed",
+            "Efficient for small data",
+            "Adaptive algorithm"
+        ],
+        "complexity": {
+            "best": "O(n)",
+            "average": "O(n^2)",
+            "worst": "O(n^2)",
+            "space": "O(1)"
+        },
+        "prosCons": {
+            "pros": [
+                "Efficient for small datasets",
+                "Stable sort",
+                "Adaptive for nearly sorted data"
+            ],
+            "cons": [
+                "Slow for large datasets"
+            ]
+        }
     },
     {
         "id": "merge-sort",
         "header": "Merge Sort",
-        "description": "Divides the array into halves, sorts them recursively, then merges sorted halves.",
         "category": "Sorting",
-        "verified": true
+        "overview": "What is Merge Sort? Merge Sort is a divide and conquer algorithm that splits the array into halves, recursively sorts them, and merges them back together.",
+        "keyPoints": [
+            "Divide and conquer approach",
+            "Splits array recursively",
+            "Merges sorted halves",
+            "Stable sorting",
+            "Requires extra memory"
+        ],
+        "complexity": {
+            "best": "O(n log n)",
+            "average": "O(n log n)",
+            "worst": "O(n log n)",
+            "space": "O(n)"
+        },
+        "prosCons": {
+            "pros": [
+                "Stable sort",
+                "Consistent performance",
+                "Good for large datasets"
+            ],
+            "cons": [
+                "Uses extra memory",
+                "Slower than quick sort in practice"
+            ]
+        }
     },
     {
         "id": "quick-sort",
         "header": "Quick Sort",
-        "description": "Uses a pivot element to partition the array and recursively sorts partitions.",
         "category": "Sorting",
-        "verified": true
+        "overview": "What is Quick Sort? Quick Sort is a fast sorting algorithm that selects a pivot and partitions the array into smaller subarrays which are sorted recursively.",
+        "keyPoints": [
+            "Divide and conquer",
+            "Uses pivot element",
+            "Partitions array",
+            "Recursive sorting",
+            "In-place sorting"
+        ],
+        "complexity": {
+            "best": "O(n log n)",
+            "average": "O(n log n)",
+            "worst": "O(n^2)",
+            "space": "O(log n)"
+        },
+        "prosCons": {
+            "pros": [
+                "Very fast in practice",
+                "In-place sorting",
+                "Widely used"
+            ],
+            "cons": [
+                "Worst case slow",
+                "Not stable",
+                "Pivot selection matters"
+            ]
+        }
     },
     {
         "id": "two-sum",
         "header": "Two Sum",
-        "description": "Finds two numbers in an array that add up to a target value using hashing or brute force.",
         "category": "Arrays",
-        "verified": true
+        "overview": "What is Two Sum? Two Sum is a problem where you find two numbers in an array that add up to a given target value, commonly solved using hashing.",
+        "keyPoints": [
+            "Uses hash map",
+            "Stores complements",
+            "Single pass solution",
+            "Efficient lookup",
+            "Common interview problem"
+        ],
+        "complexity": {
+            "best": "O(n)",
+            "average": "O(n)",
+            "worst": "O(n)",
+            "space": "O(n)"
+        },
+        "prosCons": {
+            "pros": [
+                "Efficient solution",
+                "Simple logic",
+                "Widely used pattern"
+            ],
+            "cons": [
+                "Extra space required"
+            ]
+        }
     },
     {
         "id": "fibonacci-recursion",
         "header": "Fibonacci (Recursion)",
-        "description": "Generates Fibonacci numbers using recursive relation: F(n)=F(n-1)+F(n-2).",
         "category": "Maths",
-        "verified": true
+        "overview": "What is Fibonacci Recursion? It is a recursive method to compute Fibonacci numbers where each number is the sum of the previous two.",
+        "keyPoints": [
+            "Recursive definition",
+            "Breaks into subproblems",
+            "Repeated calculations",
+            "Exponential growth",
+            "Conceptual clarity"
+        ],
+        "complexity": {
+            "best": "O(2^n)",
+            "average": "O(2^n)",
+            "worst": "O(2^n)",
+            "space": "O(n)"
+        },
+        "prosCons": {
+            "pros": [
+                "Easy to understand",
+                "Good for learning recursion"
+            ],
+            "cons": [
+                "Very inefficient",
+                "Repeats calculations"
+            ]
+        }
     },
     {
         "id": "factorial",
         "header": "Factorial",
-        "description": "Computes n! by multiplying all integers from 1 to n recursively or iteratively.",
         "category": "Maths",
-        "verified": false
+        "overview": "What is Factorial? Factorial is a mathematical operation that multiplies all integers from 1 to n, often implemented using recursion or iteration.",
+        "keyPoints": [
+            "Multiplies numbers 1 to n",
+            "Can use recursion",
+            "Can use iteration",
+            "Grows very fast",
+            "Used in combinatorics"
+        ],
+        "complexity": {
+            "best": "O(n)",
+            "average": "O(n)",
+            "worst": "O(n)",
+            "space": "O(1)"
+        },
+        "prosCons": {
+            "pros": [
+                "Simple logic",
+                "Easy to implement"
+            ],
+            "cons": [
+                "Large values overflow",
+                "Recursion may cause stack issues"
+            ]
+        }
     }
 ]
