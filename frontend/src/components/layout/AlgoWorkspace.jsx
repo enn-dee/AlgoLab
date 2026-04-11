@@ -53,7 +53,7 @@ function AlgoWorkspace() {
                             viewport={{ once: true }}
                         >
 
-                            <InfoTab algo={algo} setMarkAsRead={setMarkAsRead} />
+                            <InfoTab algo={algo} setMarkAsRead={setMarkAsRead} markAsRead={markAsRead}/>
                         </motion.div>
                     )}
 

@@ -3,8 +3,9 @@ import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
 import { motion } from "motion/react"
 import ComplexityGraph from './ComplexityGraph';
+import { Check } from 'lucide-react';
 
-function InfoTab({ algo, setMarkAsRead }) {
+function InfoTab({ algo, setMarkAsRead, markAsRead }) {
     return (
         <div className='flex  flex-col gap-6 p-6 rounded-3xl bg-gradient-to-br from-[#0f172a] to-[#020617] border border-white/10'>
             <div className="flex flex-col md:flex-row gap-6 w-full">
@@ -59,7 +60,13 @@ function InfoTab({ algo, setMarkAsRead }) {
                 onClick={() => {
                     setMarkAsRead(true)
                     toast.success("Info marked as complete! FlowChart and CodeEditor unlocked.")
-                }} >Mark as complete</Button>
+                }} >{markAsRead ? (
+                    <>
+                        <Check /> Completed
+                    </>
+                ) : (
+                    "Mark as complete"
+                )}</Button>
         </div>
     );
 }
