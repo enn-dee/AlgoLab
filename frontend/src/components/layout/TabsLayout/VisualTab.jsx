@@ -1,12 +1,10 @@
-import React from 'react'
+import React, { useEffect, useState } from "react";
+import AlgorithmVisualizer from "@/components/visualization/AlgorithmVisualizer";
 
-function VisualTab({algo}) {
-  return (
-    <div>
-      <h2 className="font-bold">Flow Visualization</h2>
-      <p>Visualization for {algo.header} coming soon...</p>
-    </div>
-  );
+export default function VisualTab({algo}) {
+
+
+  if (!algo) return <div>Loading...</div>;
+
+  return <AlgorithmVisualizer algo={algo} />;
 }
-
-export default VisualTab
