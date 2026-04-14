@@ -1,50 +1,33 @@
-import { useState } from "react";
+import { useLocation, useNavigate, Route, Routes } from "react-router-dom";
 import Navbar from "./components/layout/Navbar";
 import { Button } from "./components/ui/button";
 import { AppWindow, File } from "lucide-react";
 import AlgoDashboard from "./components/layout/AlgoDashboard";
 import AlgoWorkspace from "./components/layout/AlgoWorkspace";
-import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 export default function App() {
-  const [showMenu, setShowMenu] = useState(true)
-  const [selectedAlgo, setSelectedAlgo] = useState(null);
-
-
   const navigate = useNavigate();
   const location = useLocation();
 
-  const isAlgoPage = location.pathname.startsWith("/algo");
   const isHome = location.pathname === "/";
   const isSubmissions = location.pathname === "/submissions";
 
   return (
     <>
-
       <Toaster
         position="top-center"
-        reverseOrder={false}
-        gutter={8}
-        containerClassName=""
-        containerStyle={{}}
-        toasterId="default"
         toastOptions={{
-          // Define default options
-          className: '',
           duration: 5000,
-          removeDelay: 1000,
           style: {
-            background: '#363636',
-            color: '#fff',
+            background: "#363636",
+            color: "#fff",
           },
-
-          // Default options for specific types
           success: {
             duration: 3000,
             iconTheme: {
-              primary: 'green',
-              secondary: 'black',
+              primary: "green",
+              secondary: "black",
             },
           },
         }}
@@ -56,7 +39,6 @@ export default function App() {
 
         {/* Top Tabs */}
         <div className="w-full bg-[var(--bg-secondary)] flex gap-2 px-3 py-2">
-
           <Button
             onClick={() => navigate("/")}
             className={isHome ? "border-b-4 border-amber-50/80" : ""}
@@ -70,7 +52,6 @@ export default function App() {
           >
             <File /> My Submissions
           </Button>
-
         </div>
 
         {/* Main Content */}
@@ -81,9 +62,7 @@ export default function App() {
             <Route path="/submissions" element={<div>My Submissions</div>} />
           </Routes>
         </div>
-
       </div>
     </>
   );
 }
-
