@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import ArrayRenderer from "./ArrayRenderer";
 import Flowchart from "./Flowchart";
+import { Button } from "../ui/button";
 
 export default function AlgorithmVisualizer({ algo }) {
   const { animationSteps, input, flowchart } = algo;
@@ -80,22 +81,25 @@ export default function AlgorithmVisualizer({ algo }) {
   };
 
   return (
-    <div className="flex gap-10">
+    <div className=" flex flex-col justify-center items-center ">
 
-      <ArrayRenderer
-        array={input.array}
-        activeIndices={activeIndices} 
-        found={found}
-        low={low}                      
-        high={high}
-      />
+      <div className="flex flex-col md:flex-row justify-center items-center gap-10">
 
-      <Flowchart
-        flowchart={flowchart}
-        activeNode={activeNode}
-      />
+        <ArrayRenderer
+          array={input.array}
+          activeIndices={activeIndices}
+          found={found}
+          low={low}
+          high={high}
+        />
 
-      <button onClick={run}>Start</button>
+        <Flowchart
+          flowchart={flowchart}
+          activeNode={activeNode}
+        />
+
+      </div>
+      <Button onClick={run} className={"p-6 bg-(--bg-secondary) hover:bg-(--bg-hover)"}>Start</Button>
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
 } from "../ui/dropdown-menu"
 import { Filter, TextSelectIcon } from 'lucide-react'
 import AlgoBox from './AlgoBox'
+import { apiFetch } from '@/utils/api'
 
 function AlgoDashboard() {
     const [Category, setCategory] = useState("All")
@@ -27,11 +28,12 @@ function AlgoDashboard() {
     useEffect(() => {
         const fetchAlgos = async () => {
             try {
-                const res = await fetch("http://localhost:3000/api/algorithms")
+                const res = await apiFetch("http://localhost:3000/api/algorithms");
                 const data = await res.json()
+                // console.log("dat: ", data)
                 setAlgos(data)
             } catch (err) {
-                console.error(err)
+                // console.error(err)
                 setError("Failed to load algorithms")
             } finally {
                 setLoading(false)
@@ -63,10 +65,10 @@ function AlgoDashboard() {
             Category === "All" || algo.category === Category
 
         const matchSearch =
-            (algo.header || "")
+            (algo.title || "")
                 .toLowerCase()
                 .includes(debouncedSearch.toLowerCase()) ||
-            (algo.description || "")
+            (algo.theory?.description || "")
                 .toLowerCase()
                 .includes(debouncedSearch.toLowerCase())
 
@@ -170,7 +172,7 @@ function AlgoDashboard() {
                         <p className="text-gray-400">No algorithms found</p>
                     ) : (
                         filteredAlgos.map((algo) => (
-                            <AlgoBox key={algo.id} algo={algo} />
+                            <AlgoBox key={algo._id} algo={algo} />
                         ))
                     )}
                 </div>

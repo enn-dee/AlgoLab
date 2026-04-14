@@ -5,11 +5,15 @@ import toast from 'react-hot-toast'
 
 function Tabs({ activeTab, setActiveTab, markAsRead }) {
 
+    // const handleTabChange = (tab) => {
+    //     if (!markAsRead && tab !== "info") {
+    //         toast.error("Complete Info tab first to unlock other sections.")
+    //         return;
+    //     }
+    //     setActiveTab(tab)
+    // }
+
     const handleTabChange = (tab) => {
-        if (!markAsRead && tab !== "info") {
-            toast.error("Complete Info tab first to unlock other sections.")
-            return;
-        }
         setActiveTab(tab)
     }
     return (
@@ -25,8 +29,6 @@ function Tabs({ activeTab, setActiveTab, markAsRead }) {
             <Button
                 onClick={() => handleTabChange("flow")}
                 className={activeTab === "flow" ? "bg-[var(--bg-secondary)] border-blue-200/80" : ""}
-
-
             >
                 FlowChart <ChartSpline/>
             </Button>

@@ -5,6 +5,9 @@ import { AppWindow, File } from "lucide-react";
 import AlgoDashboard from "./components/layout/AlgoDashboard";
 import AlgoWorkspace from "./components/layout/AlgoWorkspace";
 import { Toaster } from "react-hot-toast";
+import Login from "./pages/Login";
+import { useEffect } from "react";
+import Register from "./pages/Register";
 
 export default function App() {
   const navigate = useNavigate();
@@ -12,7 +15,11 @@ export default function App() {
 
   const isHome = location.pathname === "/";
   const isSubmissions = location.pathname === "/submissions";
+  const token = localStorage.getItem("token");
 
+  useEffect(() => {
+    if (!token) navigate("/register");
+  }, [])
   return (
     <>
       <Toaster
@@ -57,6 +64,8 @@ export default function App() {
         {/* Main Content */}
         <div className="flex-1 p-6 bg-[var(--bg-tertiary)]">
           <Routes>
+            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/" element={<AlgoDashboard />} />
             <Route path="/algo/:id" element={<AlgoWorkspace />} />
             <Route path="/submissions" element={<div>My Submissions</div>} />

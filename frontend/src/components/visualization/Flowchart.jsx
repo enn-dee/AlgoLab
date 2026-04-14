@@ -40,12 +40,12 @@ function FlowInner({ flowchart, activeNode }) {
           node.id === activeNode
             ? "orange"
             : node.type === "start"
-            ? "#22c55e"
-            : node.type === "end"
-            ? "#ef4444"
-            : node.type === "decision"
-            ? "#f59e0b"
-            : "#1f2937",
+              ? "#22c55e"
+              : node.type === "end"
+                ? "#ef4444"
+                : node.type === "decision"
+                  ? "#f59e0b"
+                  : "#1f2937",
         color: "white",
         padding: 10,
         borderRadius: 8,
@@ -63,5 +63,12 @@ function FlowInner({ flowchart, activeNode }) {
     }));
   }, [flowchart]);
 
-  return <ReactFlow nodes={nodes} edges={edges} fitView />;
+  return <ReactFlow nodes={nodes} edges={edges} zoomOnScroll={false}
+    zoomOnPinch={false}
+    zoomOnDoubleClick={false}
+    panOnDrag={false}
+    panOnScroll={false}
+    nodesDraggable={false}
+    elementsSelectable={false}
+    fitView />;
 }

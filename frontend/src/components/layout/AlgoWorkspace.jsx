@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../ui/button';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Lock, Check } from 'lucide-react';
 import InfoTab from './TabsLayout/InfoTab';
 import VisualTab from './TabsLayout/VisualTab';
 import CodeTab from './TabsLayout/CodeTab';
 import Tabs from './TabsLayout/Tabs';
 import { motion } from "motion/react"
+import { apiFetch } from '@/utils/api';
 
 function AlgoWorkspace() {
 
@@ -15,10 +16,30 @@ function AlgoWorkspace() {
 
     const [algo, setAlgo] = useState(null);
     const [activeTab, setActiveTab] = useState("info");
-    const [markAsRead, setMarkAsRead] = useState(false);
+    // const [markAsRead, setMarkAsRead] = useState(false);
     const [currentSection, setCurrentSection] = useState(null);
     const [completedSections, setCompletedSections] = useState([]);
 
+
+    const [progress, setProgress] = useState(null);
+
+    useEffect(() => {
+        const fetchProgress = async () => {
+            const res = await apiFetch(
+                `http://localhost:3000/api/progress/${id}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`
+                    }
+                }
+            );
+
+            const data = await res.json();
+            setProgress(data.progress);
+        };
+
+        if (id) fetchProgress();
+    }, [id]);
 
     const isUnlocked = (sectionId) => {
         const index = algo.sections.findIndex(s => s.id === sectionId);
@@ -30,10 +51,10 @@ function AlgoWorkspace() {
 
 
 
-    useEffect(() => {
-        const saved = localStorage.getItem(`algo-${id}-read`);
-        if (saved === "true") setMarkAsRead(true);
-    }, [id]);
+    // useEffect(() => {
+    //     const saved = localStorage.getItem(`algo-${id}-read`);
+    //     if (saved === "true") setMarkAsRead(true);
+    // }, [id]);
 
     useEffect(() => {
         if (algo?.sections?.length) {
@@ -48,7 +69,7 @@ function AlgoWorkspace() {
             try {
                 const res = await fetch(`http://localhost:3000/api/algorithms/${id}`);
                 const data = await res.json();
-                console.log("ress-----", data)
+                // console.log("ress-----", data)
                 setAlgo(data);
             } catch (err) {
                 console.error(err);
@@ -65,9 +86,16 @@ function AlgoWorkspace() {
             <Button onClick={() => navigate("/")} className="w-max">
                 <ChevronLeft />
             </Button>
+
+
+            {/* <SectionsBar
+                sections={algo.sections}
+                progress={progress}
+                onSelect={setCurrentSection}
+            /> */}
             {/* ============ */}
 
-{/* 
+            {/* 
             <div className="flex gap-3 flex-wrap mb-4">
                 {algo.sections.map((sec) => {
                     const unlocked = isUnlocked(sec.id);
@@ -97,7 +125,7 @@ function AlgoWorkspace() {
                 <Tabs
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
-                    markAsRead={markAsRead}
+                // markAsRead={markAsRead}
                 />
 
                 <div className="mt-4">
@@ -109,8 +137,8 @@ function AlgoWorkspace() {
                         >
                             <InfoTab
                                 algo={algo}
-                                setMarkAsRead={setMarkAsRead}
-                                markAsRead={markAsRead}
+                            // setMarkAsRead={setMarkAsRead}
+                            // markAsRead={markAsRead}
                             />
                         </motion.div>
                     )}
@@ -127,5 +155,47 @@ function AlgoWorkspace() {
         </div>
     );
 }
+
+
+
+
+function SectionsBar({ sections, progress, onSelect }) {
+    if (!sections) return null;
+
+    const completed = progress?.completedSections || [];
+
+    return (
+        <div className="flex gap-4 flex-wrap">
+            {sections.map((sec, index) => {
+                const isCompleted = completed.includes(sec.id);
+
+                const isUnlocked =
+                    index === 0 ||
+                    completed.includes(sections[index - 1]?.id);
+
+                return (
+                    <div
+                        key={sec.id}
+                        onClick={() => {
+                            if (!isUnlocked) return;
+                            onSelect(sec.id);
+                        }}
+                        className={`px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2
+                            ${isUnlocked
+                                ? "bg-blue-500/20 hover:bg-blue-500/30"
+                                : "bg-gray-700 opacity-50 cursor-not-allowed"}
+                        `}
+                    >
+                        {isCompleted && <Check color="green" />}
+                        {!isUnlocked && !isCompleted && <Lock />}
+
+                        <span>{sec.title}</span>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
 
 export default AlgoWorkspace;
