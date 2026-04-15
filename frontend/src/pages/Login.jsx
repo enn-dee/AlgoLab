@@ -32,7 +32,6 @@ export default function Login() {
       localStorage.setItem("role", data.role);
       toast.success("Logged in.")
 
-      // better navigation (no reload)
       window.location.href = "/";
     } catch (err) {
       toast.error(err.message)
