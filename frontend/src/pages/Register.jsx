@@ -67,7 +67,6 @@ export default function Register() {
 
 
                 <div className="flex flex-col gap-4">
-                    {/* Email */}
                     <div>
                         <label className="text-sm font-medium">Email</label>
                         <input
@@ -77,7 +76,6 @@ export default function Register() {
                         />
                     </div>
 
-                    {/* Password */}
                     <div>
                         <label className="text-sm font-medium">Password</label>
                         <div className="relative">
@@ -96,7 +94,6 @@ export default function Register() {
                         </div>
                     </div>
 
-                    {/* Confirm Password */}
                     <div>
                         <label className="text-sm font-medium">Confirm Password</label>
                         <input
@@ -107,7 +104,6 @@ export default function Register() {
                         />
                     </div>
 
-                    {/* Button */}
                     <button
                         onClick={handleRegister}
                         disabled={loading}
@@ -117,7 +113,6 @@ export default function Register() {
                         {loading ? "Creating account..." : "Register"}
                     </button>
 
-                    {/* Login link */}
                     <p className="text-sm text-center">
                         Already have an account?{" "}
                         <span
