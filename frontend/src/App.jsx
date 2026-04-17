@@ -40,7 +40,11 @@ export default function App() {
         {/* Tabs */}
         {role === "student" && <StudentTabs />}
         {role === "admin" && <AdminTabs />}
+        <div>
 
+
+          
+        </div>
         {/* Routes */}
         <div className="flex-1 p-6 bg-[var(--bg-tertiary)]">
           <Routes>
@@ -62,7 +66,7 @@ export default function App() {
             </Route>
           </Routes>
         </div>
-      </div>
+      </div >
     </>
   );
 }

@@ -14,7 +14,7 @@ function InfoTab({ algo, setMarkAsRead, markAsRead }) {
     console.log
     const handleReadSection = async () => {
         try {
-            await apiFetch("http://localhost:3000/api/progress/progress", {
+            await apiFetch("progress/progress", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

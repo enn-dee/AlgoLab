@@ -46,6 +46,8 @@ const seed = async () => {
         array: [3, 8, 2, 7, 5],
         target: 7
       },
+      //  animation: "/gifs/binary-search.gif"
+      //then in app.js: app.use(express.static("public"));
 
       animationSteps: [
         { type: "start", flowNode: "start" },
@@ -60,27 +62,36 @@ const seed = async () => {
         { type: "found", index: 3, flowNode: "found" }
       ],
 
-      flowchart: {
-        nodes: [
-          { id: "start", type: "start", text: "Start" },
-          { id: "init", type: "process", text: "i = 0" },
-          { id: "check", type: "decision", text: "arr[i] == target?" },
-          { id: "found", type: "end", text: "Element Found" },
-          { id: "increment", type: "process", text: "i++" },
-          { id: "limit", type: "decision", text: "i < n ?" },
-          { id: "notfound", type: "end", text: "Not Found" }
-        ],
-        edges: [
-          { from: "start", to: "init" },
-          { from: "init", to: "check" },
-          { from: "check", to: "found", label: "Yes" },
-          { from: "check", to: "increment", label: "No" },
-          { from: "increment", to: "limit" },
-          { from: "limit", to: "check", label: "Yes" },
-          { from: "limit", to: "notfound", label: "No" }
-        ]
-      },
-
+      // flowchart: {
+      //   nodes: [
+      //     { id: "start", type: "start", text: "Start" },
+      //     { id: "init", type: "process", text: "i = 0" },
+      //     { id: "check", type: "decision", text: "arr[i] == target?" },
+      //     { id: "found", type: "end", text: "Element Found" },
+      //     { id: "increment", type: "process", text: "i++" },
+      //     { id: "limit", type: "decision", text: "i < n ?" },
+      //     { id: "notfound", type: "end", text: "Not Found" }
+      //   ],
+      //   edges: [
+      //     { from: "start", to: "init" },
+      //     { from: "init", to: "check" },
+      //     { from: "check", to: "found", label: "Yes" },
+      //     { from: "check", to: "increment", label: "No" },
+      //     { from: "increment", to: "limit" },
+      //     { from: "limit", to: "check", label: "Yes" },
+      //     { from: "limit", to: "notfound", label: "No" }
+      //   ]
+      // },
+      flowchart: `
+flowchart TD
+    A([Start]) --> B[Set i = 0]
+    B --> C{"arr[i] == target?"}
+    C -- Yes --> D([Element Found])
+    C -- No --> E[i++]
+    E --> F{"i < n?"}
+    F -- Yes --> C
+    F -- No --> G([Not Found])
+`,
       code: {
         javascript:
           "function linearSearch(arr, target) { for (let i = 0; i < arr.length; i++) { if (arr[i] === target) return i; } return -1; }"
@@ -155,22 +166,41 @@ const seed = async () => {
         { type: "found", index: 3, flowNode: "found" }
       ],
 
-      flowchart: {
-        nodes: [
-          { id: "start", type: "start", text: "Start" },
-          { id: "init", type: "process", text: "low = 0, high = n-1" },
-          { id: "mid", type: "process", text: "mid = (low + high)/2" },
-          { id: "check", type: "decision", text: "arr[mid] == target?" },
-          { id: "found", type: "end", text: "Found" }
-        ],
-        edges: [
-          { from: "start", to: "init" },
-          { from: "init", to: "mid" },
-          { from: "mid", to: "check" },
-          { from: "check", to: "found", label: "Yes" }
-        ]
-      },
+      // flowchart: {
+      //   nodes: [
+      //     { id: "start", type: "start", text: "Start" },
+      //     { id: "init", type: "process", text: "low = 0, high = n-1" },
+      //     { id: "mid", type: "process", text: "mid = (low + high)/2" },
+      //     { id: "check", type: "decision", text: "arr[mid] == target?" },
+      //     { id: "found", type: "end", text: "Found" }
+      //   ],
+      //   edges: [
+      //     { from: "start", to: "init" },
+      //     { from: "init", to: "mid" },
+      //     { from: "mid", to: "check" },
+      //     { from: "check", to: "found", label: "Yes" }
+      //   ]
+      // },
+      flowchart: `
+flowchart TD
+    A([Start]) --> B[Set low = 0, high = n-1]
+    B --> C{"low <= high?"}
 
+    C -- No --> D([Not Found])
+
+    C -- Yes --> E[mid = (low + high) / 2]
+    E --> F{"arr[mid] == target?"}
+
+    F -- Yes --> G([Found])
+
+    F -- No --> H{"arr[mid] > target?"}
+
+    H -- Yes --> I[high = mid - 1]
+    H -- No --> J[low = mid + 1]
+
+    I --> C
+    J --> C
+`,
       code: {
         javascript:
           "function binarySearch(arr, target) { let low=0, high=arr.length-1; while(low<=high){ let mid=Math.floor((low+high)/2); if(arr[mid]===target) return mid; else if(arr[mid]<target) low=mid+1; else high=mid-1;} return -1;}"
@@ -246,8 +276,30 @@ const seed = async () => {
       },
 
       animationSteps: [],
-      flowchart: { nodes: [], edges: [] },
+      // flowchart: { nodes: [], edges: [] },
 
+flowchart: `
+flowchart TD
+    A([Start]) --> B[Set i = 0]
+    B --> C{"i < n?"}
+
+    C -- No --> D([Sorted])
+
+    C -- Yes --> E[Set j = 0]
+    E --> F{"j < n-i-1?"}
+
+    F -- No --> G[i++]
+    G --> C
+
+    F -- Yes --> H{"arr[j] > arr[j+1]?"}
+
+    H -- Yes --> I[Swap elements]
+    H -- No --> J[No Swap]
+
+    I --> K[j++]
+    J --> K
+    K --> F
+`,
       code: {
         javascript:
           "function bubbleSort(arr){ for(let i=0;i<arr.length;i++){ for(let j=0;j<arr.length-i-1;j++){ if(arr[j]>arr[j+1]){ [arr[j],arr[j+1]]=[arr[j+1],arr[j]]; }}} return arr;}"

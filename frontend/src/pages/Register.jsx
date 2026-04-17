@@ -1,11 +1,12 @@
+import { apiFetch } from "@/utils/api";
 import { useState } from "react";
 import toast from "react-hot-toast";
 
 export default function Register() {
-    const [email, setEmail] = useState("");
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-
+    const [role, setRole] = useState("")
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -13,8 +14,7 @@ export default function Register() {
     const handleRegister = async () => {
         setError("");
 
-        // ✅ Basic validation
-        if (!email || !password) {
+        if (!username || !password) {
             return setError("All fields are required");
         }
 
@@ -29,12 +29,13 @@ export default function Register() {
         setLoading(true);
 
         try {
-            const res = await fetch("http://localhost:3000/api/auth/register", {
+
+            const res = await apiFetch("auth/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ username, role, password })
             });
 
             const data = await res.json();
@@ -44,7 +45,6 @@ export default function Register() {
             }
 
             toast.success("Registered.")
-            // ✅ Store auth
             localStorage.setItem("token", data.token);
             localStorage.setItem("role", data.role);
 
@@ -68,11 +68,11 @@ export default function Register() {
 
                 <div className="flex flex-col gap-4">
                     <div>
-                        <label className="text-sm font-medium">Email</label>
+                        <label className="text-sm font-medium">Username</label>
                         <input
                             className="w-full border p-2 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                            placeholder="Enter your email"
-                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="Enter your username"
+                            onChange={(e) => setUsername(e.target.value)}
                         />
                     </div>
 
@@ -103,7 +103,17 @@ export default function Register() {
                             onChange={(e) => setConfirmPassword(e.target.value)}
                         />
                     </div>
-
+                    <div >
+                        <select
+                            className="bg-(--bg-primary)"
+                            value={role}
+                            onChange={(e) => setRole(e.target.value)}
+                        >
+                            <option value="">Select role</option>
+                            <option value="student">Student</option>
+                            <option value="admin">Teacher</option>
+                        </select>
+                    </div>
                     <button
                         onClick={handleRegister}
                         disabled={loading}
