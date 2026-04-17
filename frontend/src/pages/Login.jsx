@@ -1,9 +1,9 @@
+import { apiFetch } from "@/utils/api";
 import { Toast } from "radix-ui";
 import { useState } from "react";
 import toast from "react-hot-toast";
-
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -14,13 +14,15 @@ export default function Login() {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:3000/api/auth/login", {
+      const res = await apiFetch("auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ username, password })
       });
+
+
 
       const data = await res.json();
 
@@ -49,11 +51,11 @@ export default function Login() {
 
         <div className="flex flex-col gap-4">
           <div>
-            <label className="text-sm font-medium">Email</label>
+            <label className="text-sm font-medium">Username</label>
             <input
               className="w-full border p-2 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Enter your email"
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your username"
+              onChange={(e) => setUsername(e.target.value)}
             />
           </div>
 

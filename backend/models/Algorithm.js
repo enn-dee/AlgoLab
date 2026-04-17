@@ -67,11 +67,14 @@ const algorithmSchema = new mongoose.Schema({
 
   animationSteps: [mongoose.Schema.Types.Mixed],
 
-  flowchart: {
-    nodes: [mongoose.Schema.Types.Mixed],
-    edges: [mongoose.Schema.Types.Mixed]
-  },
+  // flowchart: {
+  //   nodes: [mongoose.Schema.Types.Mixed],
+  //   edges: [mongoose.Schema.Types.Mixed]
+  // },
 
+  flowchart: {
+    type: String
+  },
   code: {
     javascript: String
   },

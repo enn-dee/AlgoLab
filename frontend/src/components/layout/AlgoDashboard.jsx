@@ -28,12 +28,10 @@ function AlgoDashboard() {
     useEffect(() => {
         const fetchAlgos = async () => {
             try {
-                const res = await apiFetch("http://localhost:3000/api/algorithms");
+                const res = await apiFetch("algorithms");
                 const data = await res.json()
-                // console.log("dat: ", data)
                 setAlgos(data)
             } catch (err) {
-                // console.error(err)
                 setError("Failed to load algorithms")
             } finally {
                 setLoading(false)

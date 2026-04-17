@@ -23,23 +23,23 @@ function AlgoWorkspace() {
 
     const [progress, setProgress] = useState(null);
 
-    useEffect(() => {
-        const fetchProgress = async () => {
-            const res = await apiFetch(
-                `http://localhost:3000/api/progress/${id}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`
-                    }
-                }
-            );
+    // useEffect(() => {
+    //     const fetchProgress = async () => {
+    //         const res = await apiFetch(
+    //             `progress/${id}`,
+    //             {
+    //                 headers: {
+    //                     Authorization: `Bearer ${localStorage.getItem("token")}`
+    //                 }
+    //             }
+    //         );
 
-            const data = await res.json();
-            setProgress(data.progress);
-        };
+    //         const data = await res.json();
+    //         setProgress(data.progress);
+    //     };
 
-        if (id) fetchProgress();
-    }, [id]);
+    //     if (id) fetchProgress();
+    // }, [id]);
 
     const isUnlocked = (sectionId) => {
         const index = algo.sections.findIndex(s => s.id === sectionId);
@@ -67,7 +67,7 @@ function AlgoWorkspace() {
     useEffect(() => {
         const fetchAlgo = async () => {
             try {
-                const res = await fetch(`http://localhost:3000/api/algorithms/${id}`);
+                const res = await apiFetch(`algorithms/${id}`);
                 const data = await res.json();
                 // console.log("ress-----", data)
                 setAlgo(data);
@@ -159,43 +159,43 @@ function AlgoWorkspace() {
 
 
 
-function SectionsBar({ sections, progress, onSelect }) {
-    if (!sections) return null;
+// function SectionsBar({ sections, progress, onSelect }) {
+//     if (!sections) return null;
 
-    const completed = progress?.completedSections || [];
+//     const completed = progress?.completedSections || [];
 
-    return (
-        <div className="flex gap-4 flex-wrap">
-            {sections.map((sec, index) => {
-                const isCompleted = completed.includes(sec.id);
+//     return (
+//         <div className="flex gap-4 flex-wrap">
+//             {sections.map((sec, index) => {
+//                 const isCompleted = completed.includes(sec.id);
 
-                const isUnlocked =
-                    index === 0 ||
-                    completed.includes(sections[index - 1]?.id);
+//                 const isUnlocked =
+//                     index === 0 ||
+//                     completed.includes(sections[index - 1]?.id);
 
-                return (
-                    <div
-                        key={sec.id}
-                        onClick={() => {
-                            if (!isUnlocked) return;
-                            onSelect(sec.id);
-                        }}
-                        className={`px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2
-                            ${isUnlocked
-                                ? "bg-blue-500/20 hover:bg-blue-500/30"
-                                : "bg-gray-700 opacity-50 cursor-not-allowed"}
-                        `}
-                    >
-                        {isCompleted && <Check color="green" />}
-                        {!isUnlocked && !isCompleted && <Lock />}
+//                 return (
+//                     <div
+//                         key={sec.id}
+//                         onClick={() => {
+//                             if (!isUnlocked) return;
+//                             onSelect(sec.id);
+//                         }}
+//                         className={`px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2
+//                             ${isUnlocked
+//                                 ? "bg-blue-500/20 hover:bg-blue-500/30"
+//                                 : "bg-gray-700 opacity-50 cursor-not-allowed"}
+//                         `}
+//                     >
+//                         {isCompleted && <Check color="green" />}
+//                         {!isUnlocked && !isCompleted && <Lock />}
 
-                        <span>{sec.title}</span>
-                    </div>
-                );
-            })}
-        </div>
-    );
-}
+//                         <span>{sec.title}</span>
+//                     </div>
+//                 );
+//             })}
+//         </div>
+//     );
+// }
 
 
 export default AlgoWorkspace;
