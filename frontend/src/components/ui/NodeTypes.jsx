@@ -1,7 +1,7 @@
-// nodeTypes.jsx
 import { Handle, Position } from "@xyflow/react";
+import { Bold } from "lucide-react";
 
-// Oval → Start / End
+// OvalShape (Start and End)
 const TerminalNode = ({ data }) => (
   <div
     style={{
@@ -20,7 +20,7 @@ const TerminalNode = ({ data }) => (
   </div>
 );
 
-// Rectangle → Process (assignments, calculations)
+// Rectangle (Process, assignments, calculations)
 const ProcessNode = ({ data }) => (
   <div
     style={{
@@ -37,7 +37,7 @@ const ProcessNode = ({ data }) => (
   </div>
 );
 
-// Diamond → Decision (conditions with ?)
+// Diamond (Decision)
 const DecisionNode = ({ data }) => (
   <div
     style={{

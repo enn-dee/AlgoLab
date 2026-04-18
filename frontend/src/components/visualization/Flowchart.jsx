@@ -42,11 +42,10 @@ function getLayoutedElements(nodes, edges) {
 
 // ---------------- COMPONENT ----------------
 function VisualTab({ algo }) {
-  console.log(algo)
   // ✅ Extract from JSON
   const rawNodes = algo?.flowChartData?.rawNodes || [];
   const rawEdges = algo?.flowChartData?.rawEdges || [];
-
+  
   // ✅ Style edges properly
   const styledEdges = useMemo(() => {
     return rawEdges.map((edge) => ({
@@ -84,7 +83,7 @@ function VisualTab({ algo }) {
           nodesDraggable={false}
           elementsSelectable={false}
         >
-          <Background />
+          <Background gap={30}/>
           <Controls
             className="p-4"
             fitViewOptions={true}

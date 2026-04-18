@@ -188,27 +188,11 @@ export default function AlgorithmVisualizer({ algo }) {
 
   return (
     <div className="flex flex-col justify-center items-center">
-      <div className="flex flex-col md:flex-row justify-center items-center gap-10">
-        {/* <ArrayRenderer
-          array={input.array}
-          activeIndices={activeIndices}
-          found={found}
-          low={low}
-          high={high}
-        /> */}
-
+      <div className="w-full">
         <Flowchart 
           algo={algo} 
-          // activeNode={activeNode}
         />
       </div>
-
-      {/* <Button
-        onClick={run}
-        className="p-6 bg-(--bg-secondary) hover:bg-(--bg-hover)"
-      >
-        Start
-      </Button> */}
     </div>
   );
 }
