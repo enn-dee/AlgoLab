@@ -111,7 +111,8 @@ import Flowchart from "./Flowchart";
 import { Button } from "../ui/button";
 
 export default function AlgorithmVisualizer({ algo }) {
-  const { animationSteps, input, flowchart } = algo;
+  const { animationSteps, input, flowChartData } = algo;
+
 
   const [activeIndices, setActiveIndices] = useState([]);
   const [activeNode, setActiveNode] = useState(null);
@@ -197,8 +198,8 @@ export default function AlgorithmVisualizer({ algo }) {
         /> */}
 
         <Flowchart 
-          flowchart={flowchart} 
-          activeNode={activeNode}
+          algo={algo} 
+          // activeNode={activeNode}
         />
       </div>
 

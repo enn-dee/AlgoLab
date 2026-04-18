@@ -1,165 +1,100 @@
-// import ReactFlow, { ReactFlowProvider } from "reactflow";
-// import { useMemo } from "react";
-// import "reactflow/dist/style.css";
+import React, { useMemo } from "react";
+import "@xyflow/react/dist/style.css";
+import { ReactFlow, Background, Controls } from "@xyflow/react";
+import dagre from "@dagrejs/dagre";
+import { nodeTypes } from "@/components/ui/NodeTypes";
 
-// export default function Flowchart({ flowchart, activeNode }) {
-//   return (
-//     <div style={{ width: 500, height: 600 }}>
-//       <ReactFlowProvider>
-//         <FlowInner flowchart={flowchart} activeNode={activeNode} />
-//       </ReactFlowProvider>
-//     </div>
-//   );
-// }
+// ---------------- DAGRE SETUP ----------------
+const nodeWidth = 180;
+const nodeHeight = 70;
 
-// function FlowInner({ flowchart, activeNode }) {
+function getLayoutedElements(nodes, edges) {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  dagreGraph.setGraph({ rankdir: "TB" });
 
-//   const getPosition = (id) => {
-//     const map = {
-//       start: { x: 150, y: 0 },
-//       init: { x: 150, y: 100 },
-//       check: { x: 150, y: 200 },
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+  });
 
-//       increment: { x: 0, y: 320 },
-//       found: { x: 300, y: 320 },
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
 
-//       limit: { x: 150, y: 420 },
-//       notfound: { x: 300, y: 540 },
-//     };
+  dagre.layout(dagreGraph);
 
-//     return map[id] || { x: 0, y: 0 };
-//   };
-
-//   const nodes = useMemo(() => {
-//     return flowchart.nodes.map((node) => ({
-//       id: node.id,
-//       data: { label: node.text },
-//       position: getPosition(node.id),
-//       style: {
-//         background:
-//           node.id === activeNode
-//             ? "orange"
-//             : node.type === "start"
-//               ? "#22c55e"
-//               : node.type === "end"
-//                 ? "#ef4444"
-//                 : node.type === "decision"
-//                   ? "#f59e0b"
-//                   : "#1f2937",
-//         color: "white",
-//         padding: 10,
-//         borderRadius: 8,
-//       },
-//     }));
-//   }, [flowchart, activeNode]);
-
-//   const edges = useMemo(() => {
-//     return flowchart.edges.map((edge, i) => ({
-//       id: "e" + i,
-//       source: edge.from,
-//       target: edge.to,
-//       label: edge.label || "",
-//       animated: true,
-//     }));
-//   }, [flowchart]);
-
-//   return <ReactFlow nodes={nodes} edges={edges} zoomOnScroll={false}
-//     zoomOnPinch={false}
-//     zoomOnDoubleClick={false}
-//     panOnDrag={false}
-//     panOnScroll={false}
-//     nodesDraggable={false}
-//     elementsSelectable={false}
-//     fitView />;
-// }
-
-import { useEffect, useRef, useState } from "react";
-import mermaid from "mermaid";
-
-export default function Flowchart({ flowchart, activeNode }) {
-  const ref = useRef(null);
-  const [key, setKey] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    mermaid.initialize({
-      startOnLoad: true,
-      theme: "dark",
-      securityLevel: "loose",
-      flowchart: {
-        useMaxWidth: true,
-        htmlLabels: true,
-        curve: "basis",
-      },
-    });
-
-    const renderChart = async () => {
-      if (!ref.current) return;
-
-      setIsLoading(true);
-      setHasError(false);
-
-      try {
-        ref.current.innerHTML = "";
-        
-        const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
-        let modifiedFlowchart = flowchart;
-        if (activeNode) {
-          modifiedFlowchart = flowchart.replace(
-            new RegExp(`${activeNode}(\\[|\\{|\\()`, 'g'),
-            `${activeNode}:::active $1`
-          );
-          
-          modifiedFlowchart = modifiedFlowchart + `\nclassDef active fill:#f59e0b,stroke:#fff,stroke-width:3px,color:#fff;`;
-        }
-
-        const { svg } = await mermaid.render(id, modifiedFlowchart);
-        ref.current.innerHTML = svg;
-        
-        const svgElement = ref.current.querySelector('svg');
-        if (svgElement) {
-          svgElement.style.maxWidth = '100%';
-          svgElement.style.height = '540px';
-        }
-        
-        setIsLoading(false);
-      } catch (err) {
-        console.error("Mermaid render error:", err);
-        setHasError(true);
-        setIsLoading(false);
-      }
-    };
-
-    renderChart();
-  }, [flowchart, activeNode, key]);
-
-  const handleRetry = () => {
-    setKey(prev => prev + 1);
+  return {
+    nodes: nodes.map((node) => {
+      const pos = dagreGraph.node(node.id);
+      return {
+        ...node,
+        position: {
+          x: pos.x - nodeWidth / 2,
+          y: pos.y - nodeHeight / 2,
+        },
+        sourcePosition: "bottom",
+        targetPosition: "top",
+      };
+    }),
+    edges,
   };
+}
+
+// ---------------- COMPONENT ----------------
+function VisualTab({ algo }) {
+  console.log(algo)
+  // ✅ Extract from JSON
+  const rawNodes = algo?.flowChartData?.rawNodes || [];
+  const rawEdges = algo?.flowChartData?.rawEdges || [];
+
+  // ✅ Style edges properly
+  const styledEdges = useMemo(() => {
+    return rawEdges.map((edge) => ({
+      ...edge,
+      type: "smoothstep",
+      animated: true,
+      labelStyle: { fontWeight: "bold", fill: "#000" },
+      style: { strokeWidth: 2 },
+      markerEnd: {
+        type: "arrowclosed",
+        color: "#fff",
+      },
+    }));
+  }, [rawEdges]);
+
+  // ✅ Apply dagre layout
+  const { nodes, edges } = useMemo(() => {
+    return getLayoutedElements(rawNodes, styledEdges);
+  }, [rawNodes, styledEdges]);
 
   return (
-    <div className="relative" style={{ minHeight: '540px', minWidth: '500px' }}>
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-gray-400">Loading diagram...</div>
-        </div>
-      )}
-      
-      <div ref={ref} className="mermaid-container" />
-      
-      {hasError && !isLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-          <p className="text-red-400">Error rendering diagram</p>
-          <button 
-            onClick={handleRetry}
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      )}
+    <div>
+      <h2 className="font-bold mb-2">{algo.title} Flow Chart</h2>
+
+      <div className="w-full h-[85vh] text-black">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          fitView
+          zoomOnScroll={false}
+          zoomOnPinch={false}
+          zoomOnDoubleClick={false}
+          panOnDrag={false}
+          nodesDraggable={false}
+          elementsSelectable={false}
+        >
+          <Background />
+          <Controls
+            className="p-4"
+            fitViewOptions={true}
+            showZoom={false}
+            showInteractive={false}
+          />
+        </ReactFlow>
+      </div>
     </div>
   );
 }
+
+export default VisualTab;

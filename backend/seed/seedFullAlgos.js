@@ -82,16 +82,118 @@ const seed = async () => {
       //     { from: "limit", to: "notfound", label: "No" }
       //   ]
       // },
-      flowchart: `
-flowchart TD
-    A([Start]) --> B[Set i = 0]
-    B --> C{"arr[i] == target?"}
-    C -- Yes --> D([Element Found])
-    C -- No --> E[i++]
-    E --> F{"i < n?"}
-    F -- Yes --> C
-    F -- No --> G([Not Found])
-`,
+      flowChartData: {
+      rawNodes: [
+        {
+          "id": "start",
+          "type": "terminalNode",
+          "data": {
+            "label": "Start",
+            "background": "#d1fae5",
+            "borderColor": "#10b981"
+          }
+        },
+        {
+          "id": "input",
+          "type": "ioNode",
+          "data": {
+            "label": "Input A, n, key",
+            "background": "#fef3c7",
+            "borderColor": "#f59e0b"
+          }
+        },
+        {
+          "id": "init",
+          "type": "processNode",
+          "data": {
+            "label": "i = 0",
+            "background": "#fecaca",
+            "borderColor": "#ef4444"
+          }
+        },
+        {
+          "id": "check_i",
+          "type": "decisionNode",
+          "data": {
+            "label": "i < n ?",
+            "background": "#dbeafe",
+            "borderColor": "#3b82f6"
+          }
+        },
+        {
+          "id": "compare",
+          "type": "decisionNode",
+          "data": {
+            "label": "A[i] == key ?",
+            "background": "#dbeafe",
+            "borderColor": "#3b82f6"
+          }
+        },
+        {
+          "id": "found",
+          "type": "ioNode",
+          "data": {
+            "label": "Found at index i",
+            "background": "#bbf7d0",
+            "borderColor": "#22c55e"
+          }
+        },
+        {
+          "id": "increment",
+          "type": "processNode",
+          "data": {
+            "label": "i = i + 1",
+            "background": "#fde68a",
+            "borderColor": "#f59e0b"
+          }
+        },
+        {
+          "id": "not_found",
+          "type": "ioNode",
+          "data": {
+            "label": "Not Found",
+            "background": "#e9d5ff",
+            "borderColor": "#8b5cf6"
+          }
+        },
+        {
+          "id": "end",
+          "type": "terminalNode",
+          "data": {
+            "label": "End",
+            "background": "#d1fae5",
+            "borderColor": "#10b981"
+          }
+        }
+      ],
+      rawEdges: [
+        { "id": "e1", "source": "start", "target": "input" },
+        { "id": "e2", "source": "input", "target": "init" },
+        { "id": "e3", "source": "init", "target": "check_i" },
+        {
+          "id": "e4",
+          "source": "check_i",
+          "target": "compare",
+          "label": "Yes"
+        },
+        {
+          "id": "e5",
+          "source": "check_i",
+          "target": "not_found",
+          "label": "No"
+        },
+        { "id": "e6", "source": "compare", "target": "found", "label": "Yes", "height": "200" },
+        {
+          "id": "e7",
+          "source": "compare",
+          "target": "increment",
+          "label": "No"
+        },
+        { "id": "e8", "source": "increment", "target": "check_i" },
+        { "id": "e9", "source": "found", "target": "end" },
+        { "id": "e10", "source": "not_found", "target": "end" }
+      ]
+    },
       code: {
         javascript:
           "function linearSearch(arr, target) { for (let i = 0; i < arr.length; i++) { if (arr[i] === target) return i; } return -1; }"
