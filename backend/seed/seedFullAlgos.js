@@ -27,24 +27,24 @@ const seed = async () => {
       keyPoints: [
         "Works on both sorted and unsorted arrays",
         "Simple and easy to implement",
-        "Checks each element one by one"
+        "Checks each element one by one",
       ],
 
       pros: [
         "No need for sorted data",
         "Very simple logic",
-        "Works on all data structures (arrays, lists)"
+        "Works on all data structures (arrays, lists)",
       ],
 
       cons: [
         "Slow for large datasets",
         "O(n) time complexity",
-        "Not efficient for repeated searches"
+        "Not efficient for repeated searches",
       ],
 
       input: {
         array: [3, 8, 2, 7, 5],
-        target: 7
+        target: 7,
       },
       //  animation: "/gifs/binary-search.gif"
       //then in app.js: app.use(express.static("public"));
@@ -59,42 +59,131 @@ const seed = async () => {
         { type: "compare", index: 2, flowNode: "check" },
         { type: "setIndex", index: 3, flowNode: "increment" },
         { type: "compare", index: 3, flowNode: "check" },
-        { type: "found", index: 3, flowNode: "found" }
+        { type: "found", index: 3, flowNode: "found" },
       ],
 
-      // flowchart: {
-      //   nodes: [
-      //     { id: "start", type: "start", text: "Start" },
-      //     { id: "init", type: "process", text: "i = 0" },
-      //     { id: "check", type: "decision", text: "arr[i] == target?" },
-      //     { id: "found", type: "end", text: "Element Found" },
-      //     { id: "increment", type: "process", text: "i++" },
-      //     { id: "limit", type: "decision", text: "i < n ?" },
-      //     { id: "notfound", type: "end", text: "Not Found" }
-      //   ],
-      //   edges: [
-      //     { from: "start", to: "init" },
-      //     { from: "init", to: "check" },
-      //     { from: "check", to: "found", label: "Yes" },
-      //     { from: "check", to: "increment", label: "No" },
-      //     { from: "increment", to: "limit" },
-      //     { from: "limit", to: "check", label: "Yes" },
-      //     { from: "limit", to: "notfound", label: "No" }
-      //   ]
-      // },
-      flowchart: `
-flowchart TD
-    A([Start]) --> B[Set i = 0]
-    B --> C{"arr[i] == target?"}
-    C -- Yes --> D([Element Found])
-    C -- No --> E[i++]
-    E --> F{"i < n?"}
-    F -- Yes --> C
-    F -- No --> G([Not Found])
-`,
+      flowChartData: {
+        rawNodes: [
+          {
+            id: "start",
+            type: "terminalNode",
+            data: {
+              label: "Start",
+              background: "#d1fae5",
+              borderColor: "#10b981",
+            },
+          },
+          {
+            id: "input",
+            type: "ioNode",
+            data: {
+              label: "Input A, n, key",
+              background: "#fef3c7",
+              borderColor: "#f59e0b",
+            },
+          },
+          {
+            id: "init",
+            type: "processNode",
+            data: {
+              label: "i = 0",
+              background: "#fecaca",
+              borderColor: "#ef4444",
+            },
+          },
+          {
+            id: "check_i",
+            type: "decisionNode",
+            data: {
+              label: "i < n ?",
+              background: "#dbeafe",
+              borderColor: "#3b82f6",
+            },
+          },
+          {
+            id: "compare",
+            type: "decisionNode",
+            data: {
+              label: "A[i] == key ?",
+              background: "#dbeafe",
+              borderColor: "#3b82f6",
+            },
+          },
+          {
+            id: "found",
+            type: "ioNode",
+            data: {
+              label: "Found at index i",
+              background: "#bbf7d0",
+              borderColor: "#22c55e",
+            },
+          },
+          {
+            id: "increment",
+            type: "processNode",
+            data: {
+              label: "i = i + 1",
+              background: "#fde68a",
+              borderColor: "#f59e0b",
+            },
+          },
+          {
+            id: "not_found",
+            type: "ioNode",
+            data: {
+              label: "Not Found",
+              background: "#e9d5ff",
+              borderColor: "#8b5cf6",
+            },
+          },
+          {
+            id: "end",
+            type: "terminalNode",
+            data: {
+              label: "End",
+              background: "#d1fae5",
+              borderColor: "#10b981",
+            },
+          },
+        ],
+        rawEdges: [
+          { id: "e1", source: "start", target: "input" },
+          { id: "e2", source: "input", target: "init" },
+          { id: "e3", source: "init", target: "check_i" },
+          {
+            id: "e4",
+            source: "check_i",
+            target: "compare",
+            label: "Yes",
+          },
+          {
+            id: "e5",
+            source: "check_i",
+            target: "not_found",
+            label: "No",
+          },
+          {
+            id: "e6",
+            source: "compare",
+            target: "found",
+            label: "Yes",
+            height: "200",
+          },
+          {
+            id: "e7",
+            source: "compare",
+            target: "increment",
+            label: "No",
+          },
+          { id: "e8", source: "increment", target: "check_i" },
+          { id: "e9", source: "found", target: "end" },
+          { id: "e10", source: "not_found", target: "end" },
+        ],
+      },
+
       code: {
         javascript:
-          "function linearSearch(arr, target) { for (let i = 0; i < arr.length; i++) { if (arr[i] === target) return i; } return -1; }"
+          "function linearSearch(arr, target) { for (let i = 0; i < arr.length; i++) { if (arr[i] === target) return i; } return -1; }",
       },
 
       pseudocode: {
@@ -109,11 +198,11 @@ flowchart TD
           "         return i (FOUND)",
           "",
           "   return NOT FOUND",
-          "end procedure"
-        ]
+          "end procedure",
+        ],
       },
 
-      verified: true
+      verified: true,
     },
 
     // =========================
@@ -134,25 +223,25 @@ flowchart TD
 
       input: {
         array: [1, 3, 5, 7, 9],
-        target: 7
+        target: 7,
       },
 
       keyPoints: [
         "Requires sorted array",
         "Works by dividing search space",
-        "Eliminates half elements each step"
+        "Eliminates half elements each step",
       ],
 
       pros: [
         "Very fast for large datasets",
         "Logarithmic time complexity",
-        "Efficient for repeated searches"
+        "Efficient for repeated searches",
       ],
 
       cons: [
         "Only works on sorted arrays",
         "Harder to implement than linear search",
-        "Not suitable for dynamic unsorted data"
+        "Not suitable for dynamic unsorted data",
       ],
 
       animationSteps: [
@@ -163,47 +252,141 @@ flowchart TD
         { type: "moveRight", low: 3, flowNode: "moveRight" },
         { type: "calculateMid", mid: 3, flowNode: "mid" },
         { type: "compare", index: 3, flowNode: "check" },
-        { type: "found", index: 3, flowNode: "found" }
+        { type: "found", index: 3, flowNode: "found" },
       ],
 
-      // flowchart: {
-      //   nodes: [
-      //     { id: "start", type: "start", text: "Start" },
-      //     { id: "init", type: "process", text: "low = 0, high = n-1" },
-      //     { id: "mid", type: "process", text: "mid = (low + high)/2" },
-      //     { id: "check", type: "decision", text: "arr[mid] == target?" },
-      //     { id: "found", type: "end", text: "Found" }
-      //   ],
-      //   edges: [
-      //     { from: "start", to: "init" },
-      //     { from: "init", to: "mid" },
-      //     { from: "mid", to: "check" },
-      //     { from: "check", to: "found", label: "Yes" }
-      //   ]
-      // },
-      flowchart: `
-flowchart TD
-    A([Start]) --> B[Set low = 0, high = n-1]
-    B --> C{"low <= high?"}
+      flowChartData: {
+        rawNodes: [
+          {
+            id: "start",
+            type: "terminalNode",
+            data: {
+              label: "Start",
+              background: "#d1fae5",
+              borderColor: "#10b981",
+            },
+          },
+          {
+            id: "init",
+            type: "processNode",
+            data: {
+              label: "low = 0, high = n-1",
+              background: "#fecaca",
+              borderColor: "#ef4444",
+            },
+          },
+          {
+            id: "check_bounds",
+            type: "decisionNode",
+            data: {
+              label: "low ≤ high ?",
+              background: "#dbeafe",
+              borderColor: "#3b82f6",
+            },
+          },
+          {
+            id: "calc_mid",
+            type: "processNode",
+            data: {
+              label: "mid = (low + high) / 2",
+              background: "#fde68a",
+              borderColor: "#f59e0b",
+            },
+          },
+          {
+            id: "compare",
+            type: "decisionNode",
+            data: {
+              label: "arr[mid] == target ?",
+              background: "#dbeafe",
+              borderColor: "#3b82f6",
+            },
+          },
+          {
+            id: "found",
+            type: "ioNode",
+            data: {
+              label: "Found at index mid",
+              background: "#bbf7d0",
+              borderColor: "#22c55e",
+            },
+          },
+          {
+            id: "check_side",
+            type: "decisionNode",
+            data: {
+              label: "arr[mid] > target ?",
+              background: "#dbeafe",
+              borderColor: "#3b82f6",
+            },
+          },
+          {
+            id: "move_left",
+            type: "processNode",
+            data: {
+              label: "high = mid - 1",
+              background: "#fde68a",
+              borderColor: "#f59e0b",
+            },
+          },
+          {
+            id: "move_right",
+            type: "processNode",
+            data: {
+              label: "low = mid + 1",
+              background: "#fde68a",
+              borderColor: "#f59e0b",
+            },
+          },
+          {
+            id: "not_found",
+            type: "ioNode",
+            data: {
+              label: "Not Found",
+              background: "#e9d5ff",
+              borderColor: "#8b5cf6",
+            },
+          },
+          {
+            id: "end",
+            type: "terminalNode",
+            data: {
+              label: "End",
+              background: "#d1fae5",
+              borderColor: "#10b981",
+            },
+          },
+        ],
+        rawEdges: [
+          { id: "e1", source: "start", target: "init" },
+          { id: "e2", source: "init", target: "check_bounds" },
+          {
+            id: "e3",
+            source: "check_bounds",
+            target: "calc_mid",
+            label: "Yes",
+          },
+          {
+            id: "e4",
+            source: "check_bounds",
+            target: "not_found",
+            label: "No",
+          },
+          { id: "e5", source: "calc_mid", target: "compare" },
+          { id: "e6", source: "compare", target: "found", label: "Yes" },
+          { id: "e7", source: "compare", target: "check_side", label: "No" },
+          { id: "e8", source: "check_side", target: "move_left", label: "Yes" },
+          { id: "e9", source: "check_side", target: "move_right", label: "No" },
+          { id: "e10", source: "move_left", target: "check_bounds" },
+          { id: "e11", source: "move_right", target: "check_bounds" },
+          { id: "e12", source: "found", target: "end" },
+          { id: "e13", source: "not_found", target: "end" },
+        ],
+      },
 
-    C -- No --> D([Not Found])
-
-    C -- Yes --> E[mid = (low + high) / 2]
-    E --> F{"arr[mid] == target?"}
-
-    F -- Yes --> G([Found])
-
-    F -- No --> H{"arr[mid] > target?"}
-
-    H -- Yes --> I[high = mid - 1]
-    H -- No --> J[low = mid + 1]
-
-    I --> C
-    J --> C
-`,
       code: {
         javascript:
-          "function binarySearch(arr, target) { let low=0, high=arr.length-1; while(low<=high){ let mid=Math.floor((low+high)/2); if(arr[mid]===target) return mid; else if(arr[mid]<target) low=mid+1; else high=mid-1;} return -1;}"
+          "function binarySearch(arr, target) { let low=0, high=arr.length-1; while(low<=high){ let mid=Math.floor((low+high)/2); if(arr[mid]===target) return mid; else if(arr[mid]<target) low=mid+1; else high=mid-1;} return -1;}",
       },
 
       pseudocode: {
@@ -229,11 +412,11 @@ flowchart TD
           "         upperBound ← mid - 1",
           "",
           "   return NOT FOUND",
-          "end procedure"
-        ]
+          "end procedure",
+        ],
       },
 
-      verified: true
+      verified: true,
     },
 
     // =========================
@@ -255,54 +438,140 @@ flowchart TD
       keyPoints: [
         "Repeatedly compares adjacent elements",
         "Largest element moves to end in each pass",
-        "Simple sorting algorithm"
+        "Simple sorting algorithm",
       ],
 
       pros: [
         "Easy to understand and implement",
         "No extra memory required",
-        "Good for educational purposes"
+        "Good for educational purposes",
       ],
 
       cons: [
         "Very slow for large datasets",
         "O(n^2) time complexity",
-        "Rarely used in production"
+        "Rarely used in production",
       ],
 
       input: {
         array: [5, 3, 8, 4],
-        target: null
+        target: null,
       },
 
       animationSteps: [],
-      // flowchart: { nodes: [], edges: [] },
 
-flowchart: `
-flowchart TD
-    A([Start]) --> B[Set i = 0]
-    B --> C{"i < n?"}
+      flowChartData: {
+        rawNodes: [
+          {
+            id: "start",
+            type: "terminalNode",
+            data: {
+              label: "Start",
+              background: "#d1fae5",
+              borderColor: "#10b981",
+            },
+          },
+          {
+            id: "init_i",
+            type: "processNode",
+            data: {
+              label: "i = 0",
+              background: "#fecaca",
+              borderColor: "#ef4444",
+            },
+          },
+          {
+            id: "check_i",
+            type: "decisionNode",
+            data: {
+              label: "i < n ?",
+              background: "#dbeafe",
+              borderColor: "#3b82f6",
+            },
+          },
+          {
+            id: "init_j",
+            type: "processNode",
+            data: {
+              label: "j = 0",
+              background: "#fecaca",
+              borderColor: "#ef4444",
+            },
+          },
+          {
+            id: "check_j",
+            type: "decisionNode",
+            data: {
+              label: "j < n-i-1 ?",
+              background: "#dbeafe",
+              borderColor: "#3b82f6",
+            },
+          },
+          {
+            id: "compare",
+            type: "decisionNode",
+            data: {
+              label: "arr[j] > arr[j+1] ?",
+              background: "#dbeafe",
+              borderColor: "#3b82f6",
+            },
+          },
+          {
+            id: "swap",
+            type: "processNode",
+            data: {
+              label: "Swap arr[j], arr[j+1]",
+              background: "#fde68a",
+              borderColor: "#f59e0b",
+            },
+          },
+          {
+            id: "inc_j",
+            type: "processNode",
+            data: {
+              label: "j++",
+              background: "#fde68a",
+              borderColor: "#f59e0b",
+            },
+          },
+          {
+            id: "inc_i",
+            type: "processNode",
+            data: {
+              label: "i++",
+              background: "#fde68a",
+              borderColor: "#f59e0b",
+            },
+          },
+          {
+            id: "sorted",
+            type: "terminalNode",
+            data: {
+              label: "Sorted",
+              background: "#d1fae5",
+              borderColor: "#10b981",
+            },
+          },
+        ],
+        rawEdges: [
+          { id: "e1", source: "start", target: "init_i" },
+          { id: "e2", source: "init_i", target: "check_i" },
+          { id: "e3", source: "check_i", target: "init_j", label: "Yes" },
+          { id: "e4", source: "check_i", target: "sorted", label: "No" },
+          { id: "e5", source: "init_j", target: "check_j" },
+          { id: "e6", source: "check_j", target: "compare", label: "Yes" },
+          { id: "e7", source: "check_j", target: "inc_i", label: "No" },
+          { id: "e8", source: "compare", target: "swap", label: "Yes" },
+          { id: "e9", source: "compare", target: "inc_j", label: "No" },
+          { id: "e10", source: "swap", target: "inc_j" },
+          { id: "e11", source: "inc_j", target: "check_j" },
+          { id: "e12", source: "inc_i", target: "check_i" },
+        ],
+      },
 
-    C -- No --> D([Sorted])
-
-    C -- Yes --> E[Set j = 0]
-    E --> F{"j < n-i-1?"}
-
-    F -- No --> G[i++]
-    G --> C
-
-    F -- Yes --> H{"arr[j] > arr[j+1]?"}
-
-    H -- Yes --> I[Swap elements]
-    H -- No --> J[No Swap]
-
-    I --> K[j++]
-    J --> K
-    K --> F
-`,
       code: {
         javascript:
-          "function bubbleSort(arr){ for(let i=0;i<arr.length;i++){ for(let j=0;j<arr.length-i-1;j++){ if(arr[j]>arr[j+1]){ [arr[j],arr[j+1]]=[arr[j+1],arr[j]]; }}} return arr;}"
+          "function bubbleSort(arr){ for(let i=0;i<arr.length;i++){ for(let j=0;j<arr.length-i-1;j++){ if(arr[j]>arr[j+1]){ [arr[j],arr[j+1]]=[arr[j+1],arr[j]]; }}} return arr;}",
       },
 
       pseudocode: {
@@ -317,12 +586,12 @@ flowchart TD
           "            swap A[j], A[j+1]",
           "",
           "   return A",
-          "end procedure"
-        ]
+          "end procedure",
+        ],
       },
 
-      verified: false
-    }
+      verified: false,
+    },
   ]);
 
   console.log("✅ Multiple algorithms seeded");
