@@ -72,8 +72,9 @@ const algorithmSchema = new mongoose.Schema({
   //   edges: [mongoose.Schema.Types.Mixed]
   // },
 
-  flowchart: {
-    type: String
+  flowChartData: {
+    rawNodes: [mongoose.Schema.Types.Mixed],
+    rawEdges: [mongoose.Schema.Types.Mixed]
   },
   code: {
     javascript: String
