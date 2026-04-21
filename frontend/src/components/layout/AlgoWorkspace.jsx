@@ -1,101 +1,95 @@
-import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { Button } from '../ui/button';
-import { ChevronLeft, Lock, Check } from 'lucide-react';
-import InfoTab from './TabsLayout/InfoTab';
-import VisualTab from './TabsLayout/VisualTab';
-import CodeTab from './TabsLayout/CodeTab';
-import Tabs from './TabsLayout/Tabs';
-import { motion } from "motion/react"
-import { apiFetch } from '@/utils/api';
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Button } from "../ui/button";
+import { ChevronLeft, Lock, Check } from "lucide-react";
+import InfoTab from "./TabsLayout/InfoTab";
+import VisualTab from "./TabsLayout/VisualTab";
+import VisualiztionTab from "./TabsLayout/VisualizationTab";
+import CodeTab from "./TabsLayout/CodeTab";
+import Tabs from "./TabsLayout/Tabs";
+import { motion } from "motion/react";
+import { apiFetch } from "@/utils/api";
 
 function AlgoWorkspace() {
+  const { id } = useParams();
+  const navigate = useNavigate();
 
-    const { id } = useParams();
-    const navigate = useNavigate();
+  const [algo, setAlgo] = useState(null);
+  const [activeTab, setActiveTab] = useState("info");
+  // const [markAsRead, setMarkAsRead] = useState(false);
+  const [currentSection, setCurrentSection] = useState(null);
+  const [completedSections, setCompletedSections] = useState([]);
 
-    const [algo, setAlgo] = useState(null);
-    const [activeTab, setActiveTab] = useState("info");
-    // const [markAsRead, setMarkAsRead] = useState(false);
-    const [currentSection, setCurrentSection] = useState(null);
-    const [completedSections, setCompletedSections] = useState([]);
+  const [progress, setProgress] = useState(null);
 
+  // useEffect(() => {
+  //     const fetchProgress = async () => {
+  //         const res = await apiFetch(
+  //             `progress/${id}`,
+  //             {
+  //                 headers: {
+  //                     Authorization: `Bearer ${localStorage.getItem("token")}`
+  //                 }
+  //             }
+  //         );
 
-    const [progress, setProgress] = useState(null);
+  //         const data = await res.json();
+  //         setProgress(data.progress);
+  //     };
 
-    // useEffect(() => {
-    //     const fetchProgress = async () => {
-    //         const res = await apiFetch(
-    //             `progress/${id}`,
-    //             {
-    //                 headers: {
-    //                     Authorization: `Bearer ${localStorage.getItem("token")}`
-    //                 }
-    //             }
-    //         );
+  //     if (id) fetchProgress();
+  // }, [id]);
 
-    //         const data = await res.json();
-    //         setProgress(data.progress);
-    //     };
+  const isUnlocked = (sectionId) => {
+    const index = algo.sections.findIndex((s) => s.id === sectionId);
 
-    //     if (id) fetchProgress();
-    // }, [id]);
+    if (index === 0) return true;
 
-    const isUnlocked = (sectionId) => {
-        const index = algo.sections.findIndex(s => s.id === sectionId);
+    return completedSections.includes(algo.sections[index - 1].id);
+  };
 
-        if (index === 0) return true;
+  // useEffect(() => {
+  //     const saved = localStorage.getItem(`algo-${id}-read`);
+  //     if (saved === "true") setMarkAsRead(true);
+  // }, [id]);
 
-        return completedSections.includes(algo.sections[index - 1].id);
+  useEffect(() => {
+    if (algo?.sections?.length) {
+      setCurrentSection(algo.currentSection || algo.sections[0].id);
+    }
+  }, [algo]);
+
+  useEffect(() => {
+    const fetchAlgo = async () => {
+      try {
+        const res = await apiFetch(`algorithms/${id}`);
+        const data = await res.json();
+        // console.log("ress-----", data)
+        setAlgo(data);
+      } catch (err) {
+        console.error(err);
+      }
     };
 
+    fetchAlgo();
+  }, [id]);
 
+  if (!algo) return <div>Loading...</div>;
 
-    // useEffect(() => {
-    //     const saved = localStorage.getItem(`algo-${id}-read`);
-    //     if (saved === "true") setMarkAsRead(true);
-    // }, [id]);
+  return (
+    <div className="flex flex-col gap-3">
+      <Button onClick={() => navigate("/")} className="w-max">
+        <ChevronLeft />
+      </Button>
 
-    useEffect(() => {
-        if (algo?.sections?.length) {
-            setCurrentSection(algo.currentSection || algo.sections[0].id);
-        }
-    }, [algo]);
-
-
-
-    useEffect(() => {
-        const fetchAlgo = async () => {
-            try {
-                const res = await apiFetch(`algorithms/${id}`);
-                const data = await res.json();
-                // console.log("ress-----", data)
-                setAlgo(data);
-            } catch (err) {
-                console.error(err);
-            }
-        };
-
-        fetchAlgo();
-    }, [id]);
-
-    if (!algo) return <div>Loading...</div>;
-
-    return (
-        <div className='flex flex-col gap-3'>
-            <Button onClick={() => navigate("/")} className="w-max">
-                <ChevronLeft />
-            </Button>
-
-
-            {/* <SectionsBar
+      {/* <SectionsBar
                 sections={algo.sections}
                 progress={progress}
                 onSelect={setCurrentSection}
             /> */}
-            {/* ============ */}
+      {/* ============ */}
 
-            {/* 
+      {/* 
             <div className="flex gap-3 flex-wrap mb-4">
                 {algo.sections.map((sec) => {
                     const unlocked = isUnlocked(sec.id);
@@ -117,47 +111,40 @@ function AlgoWorkspace() {
                 })}
             </div> */}
 
+      {/* =========== */}
 
-            {/* =========== */}
+      <div className="bg-[var(--bg-primary)] p-4 rounded-md">
+        <Tabs
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          // markAsRead={markAsRead}
+        />
 
-            <div className="bg-[var(--bg-primary)] p-4 rounded-md">
-
-                <Tabs
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
+        <div className="mt-4">
+          {activeTab === "info" && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <InfoTab
+                algo={algo}
+                // setMarkAsRead={setMarkAsRead}
                 // markAsRead={markAsRead}
-                />
+              />
+            </motion.div>
+          )}
 
-                <div className="mt-4">
-                    {activeTab === "info" && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.5 }}
-                        >
-                            <InfoTab
-                                algo={algo}
-                            // setMarkAsRead={setMarkAsRead}
-                            // markAsRead={markAsRead}
-                            />
-                        </motion.div>
-                    )}
+          {activeTab === "flow" && <VisualTab algo={algo} />}
 
-                    {activeTab === "flow" && (
-                        <VisualTab algo={algo} />
-                    )}
+          {activeTab === "visual" && <VisualiztionTab algo={algo} />}
 
-                    {activeTab === "code" && (
-                        <CodeTab algo={algo} />
-                    )}
-                </div>
-            </div>
+          {activeTab === "code" && <CodeTab algo={algo} />}
         </div>
-    );
+      </div>
+    </div>
+  );
 }
-
-
-
 
 // function SectionsBar({ sections, progress, onSelect }) {
 //     if (!sections) return null;
@@ -196,6 +183,5 @@ function AlgoWorkspace() {
 //         </div>
 //     );
 // }
-
 
 export default AlgoWorkspace;
