@@ -77,9 +77,9 @@ function VisualTab({ algo }) {
           nodeTypes={nodeTypes}
           fitView
           zoomOnScroll={false}
-          zoomOnPinch={false}
+          zoomOnPinch={true}
           zoomOnDoubleClick={false}
-          panOnDrag={false}
+          panOnDrag={true}
           nodesDraggable={false}
           elementsSelectable={false}
         >

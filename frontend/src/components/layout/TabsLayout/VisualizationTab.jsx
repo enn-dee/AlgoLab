@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
 
 // 🔁 CHANGE THIS DATA TO TEST
 
@@ -85,8 +86,8 @@ const stepsLoadFail = [
     message: "Loading Visualization...",
   },
   {
-    array: [0,0,0,0],
-    active: [0,1,2,3,4],
+    array: [0, 0, 0, 0],
+    active: [0, 1, 2, 3, 4],
     found: false,
     message: "Failed!",
   },
@@ -99,16 +100,21 @@ const VisualiztionTab = ({ algo }) => {
     algo.animationSteps && algo.animationSteps.length > 0
       ? algo.animationSteps
       : stepsLoadFail;
-  console.log(steps);
+
+  const step = steps[i];
 
   useEffect(() => {
     const id = setInterval(() => {
       setI((prev) => (prev + 1) % steps?.length);
     }, 2000);
     return () => clearInterval(id);
-  }, []);
+  });
 
-  const step = steps[i];
+  useEffect(() => {
+    step.found ? toast.success(step.message) : toast.error(step.message);
+
+    return () => {};
+  });
 
   return (
     <div>
@@ -127,6 +133,12 @@ const VisualiztionTab = ({ algo }) => {
         }}
       >
         <div className="h-80 flex flex-col items-center justify-center gap-10">
+          {step?.target ? (
+            <div className="w-full flex justify-center sm:text-xl gap-2">
+              <p>Target: </p>
+              <strong>{step.target}</strong>
+            </div>
+          ) : null}
           {/* ARRAY */}
           <div className="flex gap-3 sm:gap-6">
             {step.array.map((val, indx) => {
@@ -171,8 +183,26 @@ const VisualiztionTab = ({ algo }) => {
           </div>
 
           {/* Message */}
-          <div className="px-6 py-3 rounded-sm bg-[rgba(255,255,255,0.05)] backdrop-blur-md border border-white/10 text-center text-lg">
+          <div className="px-2 py-1 sm:px-6 sm:py-3 rounded-sm bg-[rgba(255,255,255,0.05)] backdrop-blur-md border border-white/10 text-center sm:text-lg">
             {step.message}
+          </div>
+          <div className="hidden sm:block">
+            <Toaster
+              position="bottom-center"
+              reverseOrder={true}
+              toastOptions={{
+                duration: 7000,
+                style: {
+                  background: "rgba(255,255,255,0.05)",
+                  color: "#fff",
+                  backdropFilter: "blur(3px)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: "6px",
+                  padding: "12px 16px",
+                  fontSize: "14px",
+                },
+              }}
+            />
           </div>
         </div>
       </div>

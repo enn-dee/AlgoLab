@@ -51,22 +51,32 @@ const seed = async () => {
 
       animationSteps: [
         {
-          array: [3, 8, 7, 10],
+          target: 7,
+          array: [3, 8, 18, 7, 10],
           active: [0],
           found: false,
           message: "Is 3 === 7? No.",
         },
         {
-          array: [3, 8, 7, 10],
+          target: 7,
+          array: [3, 8, 18, 7, 10],
           active: [1],
           found: false,
           message: "Is 8 === 7? No.",
         },
         {
-          array: [3, 8, 7, 10],
+          target: 7,
+          array: [3, 8, 18, 7, 10],
           active: [2],
+          found: false,
+          message: "Is 18 === 7? No.",
+        },
+        {
+          target: 7,
+          array: [3, 8, 18, 7, 10],
+          active: [3],
           found: true,
-          message: "Found 7 at index 2!",
+          message: "7 === 7, Found 7 at index 3!",
         },
       ],
 
