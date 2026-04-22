@@ -188,10 +188,10 @@ const VisualiztionTab = ({ algo }) => {
           </div>
           <div className="hidden sm:block">
             <Toaster
-              position="bottom-center"
+              position="top-center"
               reverseOrder={true}
               toastOptions={{
-                duration: 7000,
+                duration: 3000,
                 style: {
                   background: "rgba(255,255,255,0.05)",
                   color: "#fff",
