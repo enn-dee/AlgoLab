@@ -1,201 +1,176 @@
-import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { Button } from '../ui/button';
-import { ChevronLeft, Lock, Check } from 'lucide-react';
-import InfoTab from './TabsLayout/InfoTab';
-import VisualTab from './TabsLayout/VisualTab';
-import CodeTab from './TabsLayout/CodeTab';
-import Tabs from './TabsLayout/Tabs';
-import { motion } from "motion/react"
-import { apiFetch } from '@/utils/api';
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Button } from "../ui/button";
+import { ChevronLeft, ArrowRight, Sparkles } from "lucide-react";
+import InfoTab from "./TabsLayout/InfoTab";
+import VisualTab from "./TabsLayout/VisualTab";
+import VisualiztionTab from "./TabsLayout/VisualizationTab";
+import CodeTab from "./TabsLayout/CodeTab";
+import Tabs from "./TabsLayout/Tabs";
+import { motion } from "motion/react";
+import { apiFetch } from "@/utils/api";
 
 function AlgoWorkspace() {
+  const { id } = useParams();
+  const navigate = useNavigate();
 
-    const { id } = useParams();
-    const navigate = useNavigate();
+  const [algo, setAlgo] = useState(null);
+  const [activeTab, setActiveTab] = useState("info");
 
-    const [algo, setAlgo] = useState(null);
-    const [activeTab, setActiveTab] = useState("info");
-    // const [markAsRead, setMarkAsRead] = useState(false);
-    const [currentSection, setCurrentSection] = useState(null);
-    const [completedSections, setCompletedSections] = useState([]);
+  const tabOrder = ["info", "flow", "visual", "code"];
+  const index = tabOrder.indexOf(activeTab);
+  const isLastTab = index === tabOrder.length - 1;
 
+  const handleBack = () => {
+    if (index > 0) {
+      setActiveTab(tabOrder[index - 1]);
+    } else {
+      navigate("/");
+    }
+  };
 
-    const [progress, setProgress] = useState(null);
+  const handleNext = () => {
+    if (index < tabOrder.length - 1) {
+      setActiveTab(tabOrder[index + 1]);
+    }
+  };
 
-    // useEffect(() => {
-    //     const fetchProgress = async () => {
-    //         const res = await apiFetch(
-    //             `progress/${id}`,
-    //             {
-    //                 headers: {
-    //                     Authorization: `Bearer ${localStorage.getItem("token")}`
-    //                 }
-    //             }
-    //         );
-
-    //         const data = await res.json();
-    //         setProgress(data.progress);
-    //     };
-
-    //     if (id) fetchProgress();
-    // }, [id]);
-
-    const isUnlocked = (sectionId) => {
-        const index = algo.sections.findIndex(s => s.id === sectionId);
-
-        if (index === 0) return true;
-
-        return completedSections.includes(algo.sections[index - 1].id);
+  useEffect(() => {
+    const fetchAlgo = async () => {
+      try {
+        const res = await apiFetch(`algorithms/${id}`);
+        const data = await res.json();
+        setAlgo(data);
+      } catch (err) {
+        console.error(err);
+      }
     };
 
+    fetchAlgo();
+  }, [id]);
 
-
-    // useEffect(() => {
-    //     const saved = localStorage.getItem(`algo-${id}-read`);
-    //     if (saved === "true") setMarkAsRead(true);
-    // }, [id]);
-
-    useEffect(() => {
-        if (algo?.sections?.length) {
-            setCurrentSection(algo.currentSection || algo.sections[0].id);
-        }
-    }, [algo]);
-
-
-
-    useEffect(() => {
-        const fetchAlgo = async () => {
-            try {
-                const res = await apiFetch(`algorithms/${id}`);
-                const data = await res.json();
-                // console.log("ress-----", data)
-                setAlgo(data);
-            } catch (err) {
-                console.error(err);
-            }
-        };
-
-        fetchAlgo();
-    }, [id]);
-
-    if (!algo) return <div>Loading...</div>;
-
+  if (!algo) {
     return (
-        <div className='flex flex-col gap-3'>
-            <Button onClick={() => navigate("/")} className="w-max">
-                <ChevronLeft />
-            </Button>
-
-
-            {/* <SectionsBar
-                sections={algo.sections}
-                progress={progress}
-                onSelect={setCurrentSection}
-            /> */}
-            {/* ============ */}
-
-            {/* 
-            <div className="flex gap-3 flex-wrap mb-4">
-                {algo.sections.map((sec) => {
-                    const unlocked = isUnlocked(sec.id);
-                    const active = currentSection === sec.id;
-
-                    return (
-                        <button
-                            key={sec.id}
-                            disabled={!unlocked}
-                            onClick={() => setCurrentSection(sec.id)}
-                            className={`px-4 py-2 rounded-lg border
-          ${active ? "bg-blue-500 text-white" : ""}
-          ${!unlocked ? "opacity-40 cursor-not-allowed" : ""}
-        `}
-                        >
-                            {sec.title} {!unlocked && "🔒"}
-                        </button>
-                    );
-                })}
-            </div> */}
-
-
-            {/* =========== */}
-
-            <div className="bg-[var(--bg-primary)] p-4 rounded-md">
-
-                <Tabs
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                // markAsRead={markAsRead}
-                />
-
-                <div className="mt-4">
-                    {activeTab === "info" && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.5 }}
-                        >
-                            <InfoTab
-                                algo={algo}
-                            // setMarkAsRead={setMarkAsRead}
-                            // markAsRead={markAsRead}
-                            />
-                        </motion.div>
-                    )}
-
-                    {activeTab === "flow" && (
-                        <VisualTab algo={algo} />
-                    )}
-
-                    {activeTab === "code" && (
-                        <CodeTab algo={algo} />
-                    )}
-                </div>
-            </div>
-        </div>
+      <div className="min-h-[60vh] flex items-center justify-center text-gray-400 animate-pulse">
+        Loading workspace...
+      </div>
     );
+  }
+
+  return (
+    <div className="flex flex-col gap-6 px-4 md:px-8 py-6">
+
+      <div className="flex items-center justify-between">
+
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={handleBack}
+            className="rounded-xl bg-white/10 hover:bg-white/20 transition"
+          >
+            <ChevronLeft />
+          </Button>
+
+          <div className="flex flex-col">
+            <h1 className="text-xl md:text-2xl font-bold">
+              {algo.title}
+            </h1>
+            <p className="text-sm text-gray-400">
+              Learn step by step
+            </p>
+          </div>
+        </div>
+
+        {/* <Sparkles className="text-emerald-400 hidden md:block" /> */}
+
+      </div>
+
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 md:p-6 shadow-xl">
+
+        <div className="mb-4 border-b border-white/10 pb-2">
+          <Tabs
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
+        </div>
+
+        <div className="min-h-100">
+
+          {activeTab === "info" && (
+            <motion.div
+              key="info"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <InfoTab algo={algo} />
+            </motion.div>
+          )}
+
+          {activeTab === "flow" && (
+            <motion.div
+              key="flow"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <VisualTab algo={algo} />
+            </motion.div>
+          )}
+
+          {activeTab === "visual" && (
+            <motion.div
+              key="visual"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <VisualiztionTab algo={algo} />
+            </motion.div>
+          )}
+
+          {activeTab === "code" && (
+            <motion.div
+              key="code"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <CodeTab algo={algo} />
+            </motion.div>
+          )}
+
+        </div>
+
+      </div>
+
+      <div className="flex justify-between items-center">
+
+        <Button
+          onClick={handleBack}
+          className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20"
+        >
+          <ChevronLeft size={16} />
+          Back
+        </Button>
+
+        <div className="text-sm text-gray-400">
+          Step {index + 1} of {tabOrder.length}
+        </div>
+
+        <Button
+          onClick={handleNext}
+          className={`
+            flex items-center gap-2 px-4 py-2 rounded-xl font-medium
+            ${isLastTab
+              ? "bg-green-500/20 text-green-300 border border-green-400/30"
+              : "bg-gradient-to-r from-emerald-500 to-green-600 hover:opacity-90"}
+          `}
+        >
+          {isLastTab ? "Finish" : "Next"}
+          {!isLastTab && <ArrowRight size={16} />}
+        </Button>
+
+      </div>
+
+    </div>
+  );
 }
-
-
-
-
-// function SectionsBar({ sections, progress, onSelect }) {
-//     if (!sections) return null;
-
-//     const completed = progress?.completedSections || [];
-
-//     return (
-//         <div className="flex gap-4 flex-wrap">
-//             {sections.map((sec, index) => {
-//                 const isCompleted = completed.includes(sec.id);
-
-//                 const isUnlocked =
-//                     index === 0 ||
-//                     completed.includes(sections[index - 1]?.id);
-
-//                 return (
-//                     <div
-//                         key={sec.id}
-//                         onClick={() => {
-//                             if (!isUnlocked) return;
-//                             onSelect(sec.id);
-//                         }}
-//                         className={`px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2
-//                             ${isUnlocked
-//                                 ? "bg-blue-500/20 hover:bg-blue-500/30"
-//                                 : "bg-gray-700 opacity-50 cursor-not-allowed"}
-//                         `}
-//                     >
-//                         {isCompleted && <Check color="green" />}
-//                         {!isUnlocked && !isCompleted && <Lock />}
-
-//                         <span>{sec.title}</span>
-//                     </div>
-//                 );
-//             })}
-//         </div>
-//     );
-// }
-
 
 export default AlgoWorkspace;

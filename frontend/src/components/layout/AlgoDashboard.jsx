@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react'
 import { motion } from "motion/react"
 import { Input } from '../ui/input'
 import { Field } from '../ui/field'
-
 import { Button } from "../ui/button"
 import {
     DropdownMenu,
@@ -12,7 +11,7 @@ import {
     DropdownMenuRadioItem,
     DropdownMenuTrigger,
 } from "../ui/dropdown-menu"
-import { Filter, TextSelectIcon } from 'lucide-react'
+import { Filter, Search, Sparkles } from 'lucide-react'
 import AlgoBox from './AlgoBox'
 import { apiFetch } from '@/utils/api'
 
@@ -37,7 +36,6 @@ function AlgoDashboard() {
                 setLoading(false)
             }
         }
-
         fetchAlgos()
     }, [])
 
@@ -45,17 +43,12 @@ function AlgoDashboard() {
         const timer = setTimeout(() => {
             setDebouncedSearch(search)
         }, 300)
-
         return () => clearTimeout(timer)
     }, [search])
 
     const categories = [
         "All",
-        ...new Set(
-            algos
-                .map((algo) => algo.category)
-                .filter(Boolean)
-        )
+        ...new Set(algos.map((algo) => algo.category).filter(Boolean))
     ]
 
     const filteredAlgos = algos.filter((algo) => {
@@ -75,79 +68,85 @@ function AlgoDashboard() {
 
     if (error) {
         return (
-            <div className="text-red-400 text-center mt-10">
-                {error}
+            <div className="text-red-400 text-center mt-20 text-lg font-medium">
+                 {error}
             </div>
         )
     }
 
     if (loading) {
         return (
-            <div className="text-gray-400 text-center mt-10">
+            <div className="text-gray-400 text-center mt-20 animate-pulse">
                 Loading algorithms...
             </div>
         )
     }
 
     return (
-        <section className='flex flex-col gap-4'>
+        <section className='flex flex-col gap-8 px-4 md:px-8 py-6'>
 
-            <div className='flex flex-col gap-2'>
+            {/* HERO */}
+            <div className='flex flex-col gap-3 max-w-3xl'>
 
                 <motion.h1
-                    className="text-xl font-bold leading-loose"
-                    initial={{ opacity: 0.3, x: -60, filter: "blur(30px)" }}
-                    animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                    transition={{ duration: 0.6, ease: "easeInOut" }}
+                    className="text-3xl md:text-4xl font-extrabold leading-tight tracking-tight"
+                    initial={{ opacity: 0.3, y: 40, filter: "blur(20px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    transition={{ duration: 0.6 }}
                 >
-                    <span className='text-(--success-soft)'> Welcome</span>{" "}
-                    to the{" "}
-                    <span className='underline underline-offset-8'>AlgoLab!</span>
+                    <span className='bg-linear-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent'>
+                        SCiVLab
+                    </span>{" "}
+                    - Learn Algorithms Visually
                 </motion.h1>
 
                 <motion.p
-                    className="text-[var(--text-secondary)]"
-                    initial={{ opacity: 0, x: 90 }}
-                    whileInView={{
-                        opacity: 1,
-                        x: 0,
-                        transition: { duration: 0.6, ease: "easeInOut" }
-                    }}
-                    viewport={{ once: true }}
+                    className="text-muted-foreground text-base md:text-lg"
+                    initial={{ opacity: 0, x: 60 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5 }}
                 >
-                    Explore a library of core{" "}
-                    <span className='text-(--error-soft) font-semibold'>algorithms</span>.{" "}
-                    Study the logic, visualize the execution, and submit your implementation.
+                    Explore, understand, and master{" "}
+                    <span className='text-emerald-400 font-semibold'>algorithms</span>{" "}
+                    with interactive explanations and visual execution.
                 </motion.p>
 
             </div>
 
-            <div className='flex flex-col md:flex-row justify-between items-center gap-4 md:gap-8'>
+            {/* search bar , filter*/}
+            <div className='flex flex-col md:flex-row gap-4 items-center justify-between bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-lg'>
 
-                <Field orientation="horizontal" className="max-w-lg">
+                <div className="relative w-full md:max-w-md">
+                    <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
                     <Input
                         type="search"
-                        placeholder="Search..."
+                        placeholder="Search algorithms..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
+                        className="pl-10 rounded-xl bg-black/30 border-white/10 focus:ring-2 focus:ring-emerald-500"
                     />
-                </Field>
+                </div>
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button className="bg-(--bg-hover) p-5">
-                            <Filter /> Filter by Category
+                        <Button className="gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:opacity-90 transition shadow-md">
+                            <Filter size={16} />
+                            {Category}
                         </Button>
                     </DropdownMenuTrigger>
 
-                    <DropdownMenuContent>
+                    <DropdownMenuContent className="rounded-xl border border-white/10 bg-gray/80 backdrop-blur-lg text-white">
                         <DropdownMenuGroup>
                             <DropdownMenuRadioGroup
                                 value={Category}
                                 onValueChange={setCategory}
                             >
                                 {categories.map((cat) => (
-                                    <DropdownMenuRadioItem key={cat} value={cat}>
+                                    <DropdownMenuRadioItem
+                                        key={cat}
+                                        value={cat}
+                                        className="cursor-pointer"
+                                    >
                                         {cat}
                                     </DropdownMenuRadioItem>
                                 ))}
@@ -158,22 +157,28 @@ function AlgoDashboard() {
 
             </div>
 
-            <div className='flex flex-col gap-2'>
+            <div className='flex items-center gap-2 text-xl font-semibold'>
+                <Sparkles className="text-emerald-400" size={18} />
+                Browse Algorithms
+            </div>
 
-                <h1 className='text-lg md:text-xl font-bold leading-loose'>
-                    Select an Algorithm
-                    <TextSelectIcon className='inline mx-2' />
-                </h1>
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'>
 
-                <div className='w-full flex flex-col md:flex-row flex-wrap gap-6 justify-center items-center'>
-                    {filteredAlgos.length === 0 ? (
-                        <p className="text-gray-400">No algorithms found</p>
-                    ) : (
-                        filteredAlgos.map((algo) => (
-                            <AlgoBox key={algo._id} algo={algo} />
-                        ))
-                    )}
-                </div>
+                {filteredAlgos.length === 0 ? (
+                    <div className="col-span-full text-center text-gray-400 py-10">
+                        No algorithms found
+                    </div>
+                ) : (
+                    filteredAlgos.map((algo) => (
+                        <motion.div
+                            key={algo._id}
+                            whileHover={{ scale: 1.03 }}
+                            transition={{ type: "spring", stiffness: 200 }}
+                        >
+                            <AlgoBox algo={algo} />
+                        </motion.div>
+                    ))
+                )}
 
             </div>
 
