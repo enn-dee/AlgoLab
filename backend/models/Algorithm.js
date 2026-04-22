@@ -61,7 +61,7 @@ const algorithmSchema = new mongoose.Schema({
   pros: [String],
   cons: [String],
   input: {
-    array: [Number],
+    array: [mongoose.Schema.Types.Mixed],
     target: Number
   },
 
