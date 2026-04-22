@@ -1,84 +1,128 @@
 import React, { useEffect, useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import "../../app.css"
-import { Axe, ShieldUser, Verified } from 'lucide-react'
+import { Axe, ShieldUser, Verified, LogOut, Sparkles } from 'lucide-react'
 import { motion } from "motion/react"
 import { Button } from '../ui/button'
 import { useNavigate } from 'react-router-dom'
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 
 function Navbar() {
 
-    // const role = localStorage.getItem("role");
     const [role, setRole] = useState(null);
     const [token, setToken] = useState(null)
+
     useEffect(() => {
         setRole(localStorage.getItem("role"));
         setToken(localStorage.getItem("token"))
     }, []);
+
     const navigate = useNavigate();
 
     return (
-        <nav className='flex w-full max-h-12 h-full justify-between items-center bg-(--bg-secondary) text-(--text-primary) font-[Inter] py-2 px-4 border-b-2 border-(--border-primary)' >
+        <nav className='
+            sticky top-0 z-50
+            flex w-full justify-between items-center
+            px-4 md:px-6 py-3
+            bg-white/5 backdrop-blur-xl
+            border-b border-white/10
+            shadow-lg
+        '>
 
-            <div className='flex flex-row items-center justify-center gap-2'>
-                <h1 className='text-lg font-bold'> <span className=' text-[#9ED3DC]'>Algo</span> <span className=''>Lab </span></h1>
+            <div
+                onClick={() => navigate("/")}
+                className='flex items-center gap-2 cursor-pointer group'
+            >
+
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1, rotate: 360 }}
-                    transition={{ duration: 0.3 }}
+                    initial={{ opacity: 0, scale: 0.6, rotate: -90 }}
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                    transition={{ duration: 0.5 }}
                 >
-
-                    <Axe size={25} color='#F45B26' />
+                    <Axe size={26} className='text-orange-500 group-hover:rotate-12 transition' />
                 </motion.div>
+
+                <h1 className='text-lg md:text-xl font-bold tracking-tight'>
+                    <span className='bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent'>
+                        SCi
+                    </span>
+                    <span className='text-white'>VLab</span>
+                </h1>
+
+                <Sparkles className="text-yellow-400 opacity-70" size={16} />
+
             </div>
-            <div className='flex flex-row gap-4'>
-
-                {
-                    role === "student" ? (
-                        <div className='flex flex-row gap-3 items-center'>
 
 
-                            <motion.div
-                                // initial={{ opacity: 0, scale: 0.5 }}
-                                // animate={{ opacity: 1, scale: 1 }}
-                                // // transition={{ duration: 0.2 }}
-                                className=' rounded-full group relative hidden md:block'
-                            >
-                                <Verified color='green' />
+            <div className='flex items-center gap-4'>
 
-                                <span className="absolute -bottom-10 left-1/2 -translate-x-1/2 
-               scale-0 group-hover:scale-100 transition 
-               bg-gray-800 text-white text-sm px-2 py-1 rounded ">
-                                    Verified User
-                                </span>
-                            </motion.div>
+                {/* STUDENT UI */}
+                {role === "student" && token && (
+                    <div className='flex items-center gap-3'>
 
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className='flex items-center justify-center w-8 h-8 rounded-full bg-green-500/10'>
+                                    <Verified className='text-green-400' size={16} />
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Verified Student</p>
+                            </TooltipContent>
+                        </Tooltip>
 
-                            <h2 className='hidden md:block'>Welcome!</h2>
-                            <div className="flex flex-row flex-wrap items-center gap-6 md:gap-12  ">
-                                <Avatar>
-                                    <AvatarImage
-                                        src="https://avatars.githubusercontent.com/u/89350768?s=400&u=ba7b71cf3554988f67df7f9e04172adb0c353600&v=4"
-                                        alt="@enn-dee"
-                                    />
+                        <span className='hidden md:block text-sm text-gray-300'>
+                            Welcome back 👋
+                        </span>
 
-                                    <AvatarFallback>ND</AvatarFallback>
-                                </Avatar>
-                            </div>
-                        </div>
-                    ) : <>
-                        {token && (<ShieldUser color='orange' size={30} />)}
-                    </>
+                        <motion.div
+                            whileHover={{ scale: 1.08 }}
+                            className="cursor-pointer"
+                        >
+                            <Avatar className="ring-2 ring-white/10 hover:ring-emerald-400 transition">
+                                <AvatarImage
+                                    src="https://avatars.githubusercontent.com/u/89350768?s=400"
+                                    alt="user profile"
+                                />
+                                <AvatarFallback>ND</AvatarFallback>
+                            </Avatar>
+                        </motion.div>
 
-                }
-                {token && (
-                    <Button onClick={() => {
-                        localStorage.clear();
-                        window.location.href = "/login";
-
-                    }}>Logout</Button>
+                    </div>
                 )}
+
+                {role !== "student" && token && (
+                    <div className='flex items-center gap-2 px-3 py-1 rounded-lg bg-orange-500/10 border border-orange-400/20'>
+                        <ShieldUser className='text-orange-400' size={18} />
+                        <span className='text-sm text-orange-300 hidden md:block'>
+                            Admin
+                        </span>
+                    </div>
+                )}
+
+                {token && (
+                    <Button
+                        onClick={() => {
+                            localStorage.clear();
+                            window.location.href = "/login";
+                        }}
+                        className="
+                            flex items-center gap-2
+                            bg-gradient-to-r from-red-500 to-rose-600
+                            hover:opacity-90
+                            text-white
+                            rounded-xl
+                            px-3 py-2
+                            shadow-md
+                        "
+                    >
+                        <LogOut size={16} />
+                        <span className='hidden md:inline'>Logout</span>
+                    </Button>
+                )}
+
             </div>
+
         </nav>
     )
 }
