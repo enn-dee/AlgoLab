@@ -7,16 +7,13 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   const algos = await Algorithm.find();
 
-  
-  // const simplified = algos.map(a => ({
-  //   id: a.slug,
-  //   header: a.title,
-  //   description: a.theory?.description,
-  //   category: a.category,
-  //   verified: a.verified
-  // }));
+  if (!algos) {
+    return res.status(404).json({ msg: "Algorithm not found" });
+  }
 
   res.json(algos);
+
+
 });
 
 // GET ONE (workspace)
