@@ -1,91 +1,78 @@
-// import mongoose from "mongoose";
-
-// const algorithmSchema = new mongoose.Schema({
-//   slug: String,
-//   title: String,
-//   category: String,
-
-//   theory: {
-//     description: String,
-//     timeComplexity: String,
-//     spaceComplexity: String
-//   },
-
-//   input: {
-//     array: [Number],
-//     target: Number
-//   },
-
-//   animationSteps: Array,
-//   flowchart: Object,
-
-//   code: {
-//     javascript: String
-//   },
-
-//   verified: {
-//     type: Boolean,
-//     default: false
-//   }
-// });
-
-// export default mongoose.model("Algorithm", algorithmSchema);
-
-
 import mongoose from "mongoose";
 
 const algorithmSchema = new mongoose.Schema({
-  slug: { type: String, unique: true },
+  order: {
+    type: Number,
+    required: true,
+    unique: true
+  },
 
-  title: String,
-  category: String,
+  slug: {
+    type: String,
+    unique: true,
+    required: true
+  },
 
-  sections: {
+  title: { type: String, required: true },
+  category: { type: String, required: true },
+  description: { type: String, required: true },
+
+  examples: {
     type: [
       {
-        id: String,
-        title: String,
-        order: Number
+        input: mongoose.Schema.Types.Mixed,
+        output: mongoose.Schema.Types.Mixed,
+        explanation: String
       }
     ],
     default: []
   },
-  pseudocode: { lines: [String] },
-  currentSection: String,
-  keyPoints: [String],
+
+  testCases: {
+    type: [
+      {
+        input: mongoose.Schema.Types.Mixed,
+        expected: mongoose.Schema.Types.Mixed
+      }
+    ],
+    default: []
+  },
+
   theory: {
     description: String,
     timeComplexity: String,
     spaceComplexity: String
   },
-  pros: [String],
-  cons: [String],
-  input: {
-    array: [mongoose.Schema.Types.Mixed],
-    target: Number
-  },
 
-  animationSteps: [mongoose.Schema.Types.Mixed],
+  keyPoints: { type: [String], default: [] },
+  pros: { type: [String], default: [] },
+  cons: { type: [String], default: [] },
 
-  // flowchart: {
-  //   nodes: [mongoose.Schema.Types.Mixed],
-  //   edges: [mongoose.Schema.Types.Mixed]
-  // },
+  input: mongoose.Schema.Types.Mixed,
+
+  animationSteps: { type: Array, default: [] },
 
   flowChartData: {
-    rawNodes: [mongoose.Schema.Types.Mixed],
-    rawEdges: [mongoose.Schema.Types.Mixed]
+    rawNodes: { type: Array, default: [] },
+    rawEdges: { type: Array, default: [] }
   },
+
   code: {
-    javascript: String
+    javascript: String,
+    python: String
+  },
+
+  pseudocode: {
+    lines: { type: [String], default: [] }
   },
 
   verified: {
     type: Boolean,
     default: false
   }
-});
+}, { timestamps: true });
 
+algorithmSchema.index({ slug: 1 });
 const Algorithm =
   mongoose.models.Algorithm ||
   mongoose.model("Algorithm", algorithmSchema);

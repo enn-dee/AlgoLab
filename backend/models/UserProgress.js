@@ -1,14 +1,30 @@
 import mongoose from "mongoose";
 
+
+
 const userProgressSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
+    ref: "User",
+    required: true
   },
 
-  algorithmSlug: String,
+  algorithmSlug: {
+    type: String,
+    required: true
+  },
 
-  completedSections: [String] // ["linear-search"]
+  completed: {
+    type: Boolean,
+    default: false
+  },
+
+  completedAt: Date
 });
+
+userProgressSchema.index(
+  { userId: 1, algorithmSlug: 1 },
+  { unique: true }
+);
 
 export default mongoose.model("UserProgress", userProgressSchema);
