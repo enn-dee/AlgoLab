@@ -58,7 +58,7 @@ function AlgoWorkspace() {
   }
 
   return (
-    <div className="flex flex-col gap-6 px-4 md:px-8 py-6">
+    <div className="flex flex-col gap-6 sm:px-4 md:px-8 py-6">
 
       <div className="flex items-center justify-between">
 
@@ -84,7 +84,7 @@ function AlgoWorkspace() {
 
       </div>
 
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 md:p-6 shadow-xl">
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 md:p-6 shadow-xl overflow-hidden">
 
         <div className="mb-4 border-b border-white/10 pb-2">
           <Tabs
