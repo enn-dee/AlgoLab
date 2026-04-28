@@ -17,6 +17,19 @@ const algorithmSchema = new mongoose.Schema({
   category: { type: String, required: true },
   description: { type: String, required: true },
 
+  problem: {
+    statement: { type: String, required: true },
+
+    inputFormat: { type: String },
+    outputFormat: { type: String },
+    constraints: { type: String },
+
+    starterCode: {
+      python: { type: String, default: "" },
+      javascript: { type: String, default: "" }
+    }
+  },
+
   examples: {
     type: [
       {
@@ -47,7 +60,7 @@ const algorithmSchema = new mongoose.Schema({
   keyPoints: { type: [String], default: [] },
   pros: { type: [String], default: [] },
   cons: { type: [String], default: [] },
-
+  
   input: mongoose.Schema.Types.Mixed,
 
   animationSteps: { type: Array, default: [] },
