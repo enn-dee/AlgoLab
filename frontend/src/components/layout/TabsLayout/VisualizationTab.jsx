@@ -113,19 +113,19 @@ const VisualiztionTab = ({ algo }) => {
   useEffect(() => {
     step.found ? toast.success(step.message) : toast.error(step.message);
 
-    return () => {};
+    return () => {i >= steps.length - 1 && toast.dismissAll()};
   });
 
   return (
     <div>
-      <div className="flex ">
+      <div className="flex">
         <h2 className="text-md font-bold mb-3 text-center">
           {algo?.title || "Algorithm"} Visualization
         </h2>
       </div>
 
       <div
-        className="min-h-screen text-white p-6 "
+        className="min-h-screen text-white p-6"
         style={{
           backgroundColor: "bg-[var(--bg-primary)]",
           backgroundImage: `radial-gradient(circle, #5a5a5a 0.5px, transparent 1px)`,
@@ -140,7 +140,7 @@ const VisualiztionTab = ({ algo }) => {
             </div>
           ) : null}
           {/* ARRAY */}
-          <div className="flex gap-3 sm:gap-6">
+          <div className="flex gap-2 sm:gap-6">
             {step.array.map((val, indx) => {
               let bg = "rgba(255,255,255,0.05)";
               let glow = "";
@@ -186,7 +186,7 @@ const VisualiztionTab = ({ algo }) => {
           <div className="px-2 py-1 sm:px-6 sm:py-3 rounded-sm bg-[rgba(255,255,255,0.05)] backdrop-blur-md border border-white/10 text-center sm:text-lg">
             {step.message}
           </div>
-          <div className="hidden sm:block">
+          <div className="block sm:block">
             <Toaster
               position="top-center"
               reverseOrder={false}
