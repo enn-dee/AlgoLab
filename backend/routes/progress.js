@@ -136,41 +136,6 @@ router.get("/next-unlocked", authMiddleware, async (req, res) => {
 // ========== EXECUTE ROUTES ==========
 
 
-// Simple run endpoint (for print statements and testing)
-// router.post("/execute/simple-run", authMiddleware, async (req, res) => {
-//   try {
-//     const { code, language } = req.body;
-
-//     if (language !== "python") {
-//       return res.status(400).json({
-//         success: false,
-//         error: "Only Python is supported for now"
-//       });
-//     }
-
-//     if (!code) {
-//       return res.status(400).json({
-//         success: false,
-//         error: "Code is required"
-//       });
-//     }
-
-//     const result = await runSimplePythonCode(code);
-
-//     res.json({
-//       success: result.success,
-//       output: result.output,
-//       error: result.error
-//     });
-//   } catch (err) {
-//     console.error("Error executing code:", err);
-//     res.status(500).json({
-//       success: false,
-//       error: err.message
-//     });
-//   }
-// });
-
 // Run with test cases endpoint
 router.post("/execute/run", authMiddleware, async (req, res) => {
   try {
@@ -216,42 +181,23 @@ router.post("/execute/run", authMiddleware, async (req, res) => {
   }
 });
 
-// Validate syntax endpoint
-// router.post("/execute/validate", authMiddleware, async (req, res) => {
-//   try {
-//     const { code, language } = req.body;
 
-//     if (language !== "python") {
-//       return res.status(400).json({
-//         success: false,
-//         error: "Only Python is supported for now"
-//       });
-//     }
+// router.post("/submissions/save", authMiddleware, async (req, res) => {
+//   const { algorithmSlug, code, language, passed } = req.body;
+//   const submission = await AlgorithmSubmission.findOneAndUpdate(
+//     { userId: req.user.id, algorithmSlug },
+//     { code, language, passed, updatedAt: new Date() },
+//     { upsert: true, new: true }
+//   );
+//   res.json({ success: true, submission });
+// });
 
-//     // Simple syntax validation
-//     const hasDef = code.includes('def ');
-//     const hasColon = code.includes(':');
-
-//     if (!hasDef || !hasColon) {
-//       return res.json({
-//         success: true,
-//         valid: false,
-//         error: "Code doesn't look like valid Python. Make sure you have proper function definitions."
-//       });
-//     }
-
-//     res.json({
-//       success: true,
-//       valid: true,
-//       error: null
-//     });
-
-//   } catch (err) {
-//     res.status(500).json({
-//       success: false,
-//       error: err.message
-//     });
-//   }
+// router.delete("/submissions/reset/:slug", authMiddleware, async (req, res) => {
+//   await AlgorithmSubmission.findOneAndDelete({
+//     userId: req.user.id,
+//     algorithmSlug: req.params.slug
+//   });
+//   res.json({ success: true });
 // });
 
 

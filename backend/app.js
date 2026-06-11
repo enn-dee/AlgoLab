@@ -2,27 +2,23 @@ import express from "express";
 import cors from "cors";
 
 import algorithmRoutes from "./routes/algorithm.js";
+import algorithmSubmissionRoutes from "./routes/algorithmSubmission.js";
 import authRoutes from "./routes/auth.js";
-import submissionRoutes from "./routes/submissions.js";
-import assignmentRoutes from "./routes/assignments.js";
-import adminRoutes from "./routes/admin.js"
-import adminStudentsRoutes
-  from "./routes/adminStudents.js";
-
+import practicalSubmissionRoutes from "./routes/PracticalSubmissions.js"; // Fixed import name
+import adminRoutes from "./routes/admin.js";
+import adminStudentsRoutes from "./routes/adminStudents.js";
 import teacherAuthRoutes from "./routes/teacherAuth.js";
 import labRoutes from "./routes/lab.js";
 import studentRoutes from "./routes/students.js";
 import practicalRoutes from "./routes/practical.js";
-// import submissionRoutes from "./routes/submission.js";
 import evaluationRoutes from "./routes/evaluation.js";
 import marksRoutes from "./routes/marks.js";
 import attendanceRoutes from "./routes/attendance.js";
 import reportRoutes from "./routes/reports.js";
 import studentLabRoutes from "./routes/studentLab.js";
-
+import progressRoute from "./routes/progress.js";
 
 import connectDB from "./config/db.js";
-import progressRoute from "./routes/progress.js"
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -37,29 +33,22 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
-app.use(
-  express.static(
-    path.join(__dirname, "../frontend/dist")
-  )
-);
+connectDB();
 
-
-connectDB()
-
+// API Routes - no duplicates
 app.use("/api/algorithms", algorithmRoutes);
+app.use("/api/algo-progress", algorithmSubmissionRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/submissions", submissionRoutes);
-app.use("/api/assignments", assignmentRoutes);
-app.use("/api/progress", progressRoute)
+app.use("/api/submissions", practicalSubmissionRoutes); // Only mounted once
+app.use("/api/progress", progressRoute);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/students", adminStudentsRoutes);
-
 app.use("/api/teacher", teacherAuthRoutes);
 app.use("/api/labs", labRoutes);
 app.use("/api/lab-students", studentRoutes);
 app.use("/api/practicals", practicalRoutes);
-app.use("/api/submissions", submissionRoutes);
 app.use("/api/evaluations", evaluationRoutes);
 app.use("/api/marks", marksRoutes);
 app.use("/api/attendance", attendanceRoutes);
@@ -67,12 +56,11 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/student", studentLabRoutes);
 
 app.get("/health", (req, res) => {
-  return res.status(200).send("ok")
-})
+  return res.status(200).send("ok");
+});
+
 app.use((req, res) => {
-  res.sendFile(
-    path.join(__dirname, "../frontend/dist/index.html")
-  );
+  res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
 });
 
 app.listen(3000, () => {

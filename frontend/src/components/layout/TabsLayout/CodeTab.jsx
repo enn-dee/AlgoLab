@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Editor from "@monaco-editor/react";
 
 import { Button } from "@/components/ui/button";
+import toast from "react-hot-toast";
 
 import {
   Play,
@@ -10,7 +11,6 @@ import {
   VerifiedIcon,
   X,
   RotateCcw,
-  Terminal,
   Code2,
   Sparkles,
 } from "lucide-react";
@@ -44,21 +44,23 @@ function CodeTab({ algo }) {
     if (!confirmReset) return;
 
     try {
+      const starterCode = algo.problem?.starterCode?.python || 
+        `def solution():\n    # Write your code here\n    pass`;
 
-      setCode(
-        algo.problem?.starterCode?.python || ""
-      );
-
+      setCode(starterCode);
       setResults([]);
       setSubmitted(false);
       setCustomInput("");
 
+      // ✅ FIXED: Use algo-progress endpoint
       await apiFetch(
-        `submissions/reset/${algo.slug}`,
+        `algo-progress/reset/${algo.slug}`,
         {
           method: "DELETE",
         }
       );
+
+      toast.success("Code reset to template");
 
     } catch (err) {
 
@@ -66,6 +68,7 @@ function CodeTab({ algo }) {
         "Failed resetting code:",
         err
       );
+      toast.error("Failed to reset code");
     }
   };
 
@@ -78,13 +81,13 @@ function CodeTab({ algo }) {
     const loadSavedCode = async () => {
 
       try {
-
+        // ✅ FIXED: Use algo-progress endpoint
         const res = await apiFetch(
-          `submissions/${algo.slug}`
+          `algo-progress/${algo.slug}`
         );
 
         const data = await res.json();
-
+        console.log("data: ", data)
         if (data?.submission?.code) {
 
           setCode(data.submission.code);
@@ -198,6 +201,8 @@ function CodeTab({ algo }) {
 
   const handleRun = async () => {
 
+    toast.loading("Running code tests...")
+
     setLoading(true);
     setResults([]);
 
@@ -232,7 +237,7 @@ function CodeTab({ algo }) {
           error,
         };
       });
-
+      toast.dismiss()
       setResults(resultsArray);
 
     } catch (err) {
@@ -253,6 +258,7 @@ function CodeTab({ algo }) {
   // ================= SUBMIT =================
 
   const handleSubmit = async () => {
+    const loadingToast = toast.loading("Running all test cases...")
 
     setLoading(true);
     setResults([]);
@@ -299,8 +305,11 @@ function CodeTab({ algo }) {
 
           setResults(resultsArray);
 
+          console.log("saved code: ", code)
+          
+          // ✅ FIXED: Use algo-progress/save endpoint
           await apiFetch(
-            "submissions/save",
+            "algo-progress/save",
             {
               method: "POST",
 
@@ -313,14 +322,15 @@ function CodeTab({ algo }) {
             }
           );
 
+          toast.dismiss(loadingToast);
+          toast.error("Tests failed! Keep trying.");
           setLoading(false);
 
           return;
         }
       }
 
-      // ================= MARK COMPLETE =================
-
+      // ✅ This endpoint stays the same - it's correct (progress/complete)
       await apiFetch(
         "progress/complete",
         {
@@ -332,10 +342,9 @@ function CodeTab({ algo }) {
         }
       );
 
-      // ================= SAVE SUBMISSION =================
-
+      // ✅ FIXED: Use algo-progress/save endpoint
       await apiFetch(
-        "submissions/save",
+        "algo-progress/save",
         {
           method: "POST",
 
@@ -354,9 +363,12 @@ function CodeTab({ algo }) {
         {
           passed: true,
           message:
-            "All hidden test cases passed 🚀",
+            "🎉 All hidden test cases passed! Algorithm completed.",
         },
       ]);
+
+      toast.dismiss(loadingToast);
+      toast.success("All tests passed! Algorithm completed! 🎉");
 
     } catch (err) {
 
@@ -366,6 +378,9 @@ function CodeTab({ algo }) {
           error: err.message,
         },
       ]);
+      
+      toast.dismiss(loadingToast);
+      toast.error("Error submitting code");
 
     } finally {
 
@@ -626,31 +641,6 @@ function CodeTab({ algo }) {
 
                     </div>
                   )}
-
-                </div>
-
-                {/* CUSTOM INPUT */}
-
-                <div className="border-b border-white/10 p-3">
-
-                  <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-gray-500">
-
-                    <Terminal size={13} />
-
-                    Custom Input
-
-                  </div>
-
-                  <textarea
-                    className="min-h-[80px] w-full rounded-2xl border border-white/10 bg-black/40 p-3 text-sm text-gray-300 outline-none transition focus:border-emerald-400/30 focus:ring-2 focus:ring-emerald-500/10"
-                    placeholder="Type custom input here..."
-                    value={customInput}
-                    onChange={(e) =>
-                      setCustomInput(
-                        e.target.value
-                      )
-                    }
-                  />
 
                 </div>
 

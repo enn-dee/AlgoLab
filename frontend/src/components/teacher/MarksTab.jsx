@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import toast from "react-hot-toast";
 import { Save, Download, Search } from "lucide-react";
 
-const components = ["viva", "observation", "execution", "record", "output", "attendance", "internal"];
+const components = ["viva", "execution", "attendance", "internal"];
 
 export default function MarksTab({ lab }) {
   const [practicals, setPracticals] = useState([]);
@@ -143,10 +143,10 @@ export default function MarksTab({ lab }) {
             <Save size={15} />
             {loading ? "Saving..." : "Save All"}
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-sm hover:bg-emerald-500/30 transition">
+          {/* <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-sm hover:bg-emerald-500/30 transition">
             <Download size={15} />
             Export
-          </button>
+          </button> */}
         </div>
       </div>
 

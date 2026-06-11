@@ -1,11 +1,5 @@
-import express from "express";
 import { PythonShell } from "python-shell";
-import { authMiddleware } from "../middleware/auth.js";
-import Algorithm from "../models/Algorithm.js";
 
-const router = express.Router();
-
-// Helper function to run Python code with test cases
 export const runPythonCode = async (code, testCases) => {
   const results = [];
 
@@ -25,7 +19,7 @@ except Exception as e:
     const options = {
       mode: "text",
       pythonOptions: ["-u"],
-      timeout: 5000, 
+      timeout: 5000,
     };
 
     const output = await new Promise((resolve) => {
@@ -69,13 +63,11 @@ export const runSimplePythonCode = async (code) => {
     const options = {
       mode: 'text',
       pythonOptions: ['-u'],
-      // Set a timeout for infinite loops
       timeout: 5000
     };
     
     PythonShell.runString(code, options, (err, output) => {
       if (err) {
-        // Capture stderr output
         resolve({
           success: false,
           output: err.message,
@@ -91,5 +83,3 @@ export const runSimplePythonCode = async (code) => {
     });
   });
 };
-
-// export default runPythonCode;

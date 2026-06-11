@@ -11,13 +11,10 @@ router.post("/", authMiddleware, async (req, res) => {
   try {
     const { studentId, practicalId } = req.body;
 
-    console.log("stdId: ", studentId, " pracId: " , practicalId)
-    // Validate required fields
     if (!studentId || !practicalId) {
       return res.status(400).json({ error: "studentId and practicalId are required" });
     }
 
-    // Validate ObjectIds
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
       return res.status(400).json({ error: "Invalid studentId" });
     }
@@ -25,16 +22,13 @@ router.post("/", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Invalid practicalId" });
     }
 
-    const { viva, observation, execution, record, output, attendance, internal } = req.body;
+    const { viva, execution, attendance, internal } = req.body;
 
     let marks = await Marks.findOne({ studentId, practicalId });
 
     if (marks) {
       if (viva !== undefined) marks.viva = viva;
-      if (observation !== undefined) marks.observation = observation;
       if (execution !== undefined) marks.execution = execution;
-      if (record !== undefined) marks.record = record;
-      if (output !== undefined) marks.output = output;
       if (attendance !== undefined) marks.attendance = attendance;
       if (internal !== undefined) marks.internal = internal;
       await marks.save();
@@ -43,10 +37,7 @@ router.post("/", authMiddleware, async (req, res) => {
         studentId,
         practicalId,
         viva: viva || 0,
-        observation: observation || 0,
         execution: execution || 0,
-        record: record || 0,
-        output: output || 0,
         attendance: attendance || 0,
         internal: internal || 0
       });
@@ -109,17 +100,29 @@ router.post("/bulk", authMiddleware, async (req, res) => {
 
     const results = await Promise.all(
       marksData.map(async (m) => {
+        const cleanData = {
+          studentId: m.studentId,
+          practicalId: m.practicalId,
+          viva: m.viva || 0,
+          execution: m.execution || 0,
+          attendance: m.attendance || 0,
+          internal: m.internal || 0
+        };
+        
         let marks = await Marks.findOne({ 
           studentId: m.studentId, 
           practicalId: m.practicalId 
         });
         
         if (marks) {
-          Object.assign(marks, m);
+          marks.viva = cleanData.viva;
+          marks.execution = cleanData.execution;
+          marks.attendance = cleanData.attendance;
+          marks.internal = cleanData.internal;
           await marks.save();
           return marks;
         } else {
-          return await Marks.create(m);
+          return await Marks.create(cleanData);
         }
       })
     );
