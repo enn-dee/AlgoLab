@@ -124,14 +124,7 @@ function InfoTab({ algo }) {
 
             <div className="px-5 pb-5 max-w-xl mx-auto">
               <div className="rounded-2xl bg-black/20 border border-white/5 p-4">
-                <ComplexityGraph
-                  complexity={
-                    algo.complexity || {
-                      time: algo.theory?.timeComplexity,
-                      space: algo.theory?.spaceComplexity,
-                    }
-                  }
-                />
+                <ComplexityGraph complexity={algo.theory?.timeComplexity} />
               </div>
             </div>
 
