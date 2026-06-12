@@ -18,8 +18,10 @@ export default function AttendanceTab({ lab }) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    setLoading(true);
     fetchStudents();
     fetchPracticals();
+    setLoading(false);
   }, [lab]);
 
   useEffect(() => {
@@ -27,57 +29,68 @@ export default function AttendanceTab({ lab }) {
   }, [date, type]);
 
   const fetchStudents = async () => {
+    setLoading(true);
+
     const res = await apiFetch(`lab-students/${lab._id}`);
     setStudents(await res.json());
+    setLoading(false);
   };
 
   const fetchPracticals = async () => {
+    setLoading(true);
     const res = await apiFetch(`practicals/lab/${lab._id}`);
     setPracticals(await res.json());
+    setLoading(false);
   };
 
   const fetchAttendance = async () => {
     try {
+      setLoading(true);
       const params = new URLSearchParams({ date, type });
       const res = await apiFetch(`attendance/lab/${lab._id}?${params}`);
       const data = await res.json();
       setExisting(data);
       const map = {};
-      data.forEach(a => { map[a.studentId?._id || a.studentId] = a.status; });
+      data.forEach((a) => {
+        map[a.studentId?._id || a.studentId] = a.status;
+      });
       setAttendance(map);
+      setLoading(false);
     } catch (err) {
       console.error(err);
     }
   };
 
   const fetchAlerts = async () => {
+    setLoading(true);
     const res = await apiFetch(`attendance/low-attendance/${lab._id}`);
     setAlerts(await res.json());
     setShowAlerts(true);
+    setLoading(false);
   };
 
   const handleToggle = (studentId) => {
-    setAttendance(prev => ({
+    setAttendance((prev) => ({
       ...prev,
-      [studentId]: prev[studentId] === "present" ? "absent" : "present"
+      [studentId]: prev[studentId] === "present" ? "absent" : "present",
     }));
   };
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      const records = students.map(s => ({
+      const records = students.map((s) => ({
         studentId: s._id,
         labId: lab._id,
         practicalId: practicalId || null,
         date,
         type,
-        status: attendance[s._id] || "present"
+        status: attendance[s._id] || "present",
       }));
 
       await apiFetch("attendance", {
         method: "POST",
-        body: JSON.stringify({ records })
+        body: JSON.stringify({ records }),
       });
       toast.success("Attendance saved");
       fetchAttendance();
@@ -88,14 +101,20 @@ export default function AttendanceTab({ lab }) {
     }
   };
 
-  const presentCount = Object.values(attendance).filter(s => s === "present").length;
+  const presentCount = Object.values(attendance).filter(
+    (s) => s === "present",
+  ).length;
   const totalCount = students.length;
 
-  const filtered = students.filter(s =>
-    (s.fullName || "").toLowerCase().includes(search.toLowerCase()) ||
-    (s.rollNumber || "").toLowerCase().includes(search.toLowerCase())
+  const filtered = students.filter(
+    (s) =>
+      (s.fullName || "").toLowerCase().includes(search.toLowerCase()) ||
+      (s.rollNumber || "").toLowerCase().includes(search.toLowerCase()),
   );
 
+    if (loading) {
+    return <div className="text-center py-10 text-gray-500">Loading Attendance...</div>;
+  }
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -134,15 +153,19 @@ export default function AttendanceTab({ lab }) {
             className="p-2.5 rounded-xl bg-black/30 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <option value="">All Practicals</option>
-            {practicals.map(p => (
-              <option key={p._id} value={p._id}>{p.title}</option>
+            {practicals.map((p) => (
+              <option key={p._id} value={p._id}>
+                {p.title}
+              </option>
             ))}
           </select>
         )}
         <div className="ml-auto flex items-center gap-2 text-sm">
           <span className="text-emerald-400">Present: {presentCount}</span>
           <span className="text-gray-500">|</span>
-          <span className="text-red-400">Absent: {totalCount - presentCount}</span>
+          <span className="text-red-400">
+            Absent: {totalCount - presentCount}
+          </span>
         </div>
       </div>
 
@@ -175,9 +198,13 @@ export default function AttendanceTab({ lab }) {
               <p className="text-white text-sm">{student.fullName}</p>
               <p className="text-xs text-gray-500">{student.rollNumber}</p>
             </div>
-            <span className={`text-sm font-medium ${
-              attendance[student._id] === "absent" ? "text-red-400" : "text-emerald-400"
-            }`}>
+            <span
+              className={`text-sm font-medium ${
+                attendance[student._id] === "absent"
+                  ? "text-red-400"
+                  : "text-emerald-400"
+              }`}
+            >
               {attendance[student._id] === "absent" ? "Absent" : "Present"}
             </span>
           </motion.div>
@@ -206,16 +233,30 @@ export default function AttendanceTab({ lab }) {
                 <AlertTriangle size={20} className="text-orange-400" />
                 Low Attendance Alerts
               </h3>
-              <button onClick={() => setShowAlerts(false)} className="text-gray-400 hover:text-white">✕</button>
+              <button
+                onClick={() => setShowAlerts(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
             </div>
             {alerts.length === 0 ? (
-              <p className="text-gray-400 text-center py-6">All students have good attendance 🎉</p>
+              <p className="text-gray-400 text-center py-6">
+                All students have good attendance 🎉
+              </p>
             ) : (
               <div className="space-y-2">
                 {alerts.map((a, i) => (
-                  <div key={i} className="rounded-xl border border-orange-400/20 bg-orange-500/10 p-3">
-                    <p className="text-white font-medium">{a.student.fullName}</p>
-                    <p className="text-sm text-gray-400">{a.student.rollNumber}</p>
+                  <div
+                    key={i}
+                    className="rounded-xl border border-orange-400/20 bg-orange-500/10 p-3"
+                  >
+                    <p className="text-white font-medium">
+                      {a.student.fullName}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      {a.student.rollNumber}
+                    </p>
                     <p className="text-sm text-orange-400 mt-1">
                       {a.percentage}% ({a.present}/{a.total} present)
                     </p>

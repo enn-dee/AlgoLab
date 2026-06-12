@@ -81,13 +81,12 @@ function CodeTab({ algo }) {
     const loadSavedCode = async () => {
 
       try {
-        // ✅ FIXED: Use algo-progress endpoint
         const res = await apiFetch(
           `algo-progress/${algo.slug}`
         );
 
         const data = await res.json();
-        console.log("data: ", data)
+        // console.log("data: ", data)
         if (data?.submission?.code) {
 
           setCode(data.submission.code);

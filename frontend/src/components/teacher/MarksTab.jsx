@@ -119,6 +119,9 @@ export default function MarksTab({ lab }) {
     (s.rollNumber || "").toLowerCase().includes(search.toLowerCase())
   );
 
+    if (loading) {
+    return <div className="text-center py-10 text-gray-500">Loading Marks...</div>;
+  }
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-4 flex-wrap">
