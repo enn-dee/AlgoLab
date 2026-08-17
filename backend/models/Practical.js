@@ -27,8 +27,47 @@ const practicalSchema = new mongoose.Schema({
         type: Date
     },
     order: {
-        type: Number,
-        default: 0
+      type: Number,
+      default: 0
+    },
+    starterTemplate: {
+      python: {
+        prefix: { type: String, default: "" },
+        suffix: { type: String, default: "" },
+        starterSolution: { type: String, default: "" }
+      },
+      javascript: {
+        prefix: { type: String, default: "" },
+        suffix: { type: String, default: "" },
+        starterSolution: { type: String, default: "" }
+      },
+      c: {
+        prefix: { type: String, default: "" },
+        suffix: { type: String, default: "" },
+        starterSolution: { type: String, default: "" }
+      },
+      cpp: {
+        prefix: { type: String, default: "" },
+        suffix: { type: String, default: "" },
+        starterSolution: { type: String, default: "" }
+      },
+      java: {
+        prefix: { type: String, default: "" },
+        suffix: { type: String, default: "" },
+        starterSolution: { type: String, default: "" }
+      }
+    },
+    testCases: [{
+      input: mongoose.Schema.Types.Mixed,
+      expected: { type: String, default: "" },
+      visibility: { type: String, enum: ["public", "hidden"], default: "hidden" },
+      weight: { type: Number, default: 1, min: 0 }
+    }],
+    execution: {
+      enabled: { type: Boolean, default: false },
+      allowedLanguages: { type: [String], default: ["python"] },
+      timeLimitSeconds: { type: Number, default: 2, min: 1, max: 15 },
+      memoryLimitKb: { type: Number, default: 128000, min: 16000 }
     }
 }, { timestamps: true });
 

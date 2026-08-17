@@ -31,7 +31,20 @@ const submissionSchema = new mongoose.Schema({
   },
   submittedAt: {
     type: Date
-  }
+  },
+  score: { type: Number, default: 0, min: 0, max: 100 },
+  testSummary: {
+    passed: { type: Number, default: 0 },
+    total: { type: Number, default: 0 }
+  },
+  testResults: [{
+    caseId: mongoose.Schema.Types.ObjectId,
+    passed: Boolean,
+    runtimeMs: Number,
+    memoryKb: Number,
+    actualOutput: String
+  }],
+  idempotencyKey: { type: String, sparse: true, unique: true }
 }, { timestamps: true });
 
 export default mongoose.model("Submission", submissionSchema);

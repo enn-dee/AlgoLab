@@ -5,6 +5,20 @@ import { authMiddleware } from "../middleware/auth.js";
 
 const router = express.Router();
 
+// GET all user's algorithm submissions. This must precede `/:slug`.
+router.get("/user/all", authMiddleware, async (req, res) => {
+  try {
+    const submissions = await AlgorithmSubmission.find({
+      userId: req.user.id,
+    }).sort({ updatedAt: -1 });
+
+    res.json({ success: true, submissions });
+  } catch (err) {
+    console.error("Error fetching all submissions:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET saved code for an algorithm
 router.get("/:slug", authMiddleware, async (req, res) => {
   try {
@@ -81,20 +95,6 @@ router.delete("/reset/:slug", authMiddleware, async (req, res) => {
     });
   } catch (err) {
     console.error("Error resetting submission:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET all user's algorithm submissions
-router.get("/user/all", authMiddleware, async (req, res) => {
-  try {
-    const submissions = await AlgorithmSubmission.find({
-      userId: req.user.id,
-    }).sort({ updatedAt: -1 });
-
-    res.json({ success: true, submissions });
-  } catch (err) {
-    console.error("Error fetching all submissions:", err);
     res.status(500).json({ error: err.message });
   }
 });
