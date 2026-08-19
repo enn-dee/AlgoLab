@@ -402,7 +402,9 @@ export default function StudentsTab({ lab, onUpdate }) {
                 ) : (
                   <>
                     <UserCheck size={18} />
-                    Enroll All Available Students ({availableStudents.length})
+                    Enroll All Available Students({
+                      availableStudents.length
+                    }) {batchFilter != "All" ? `Of Batch ${batchFilter}` : ""}
                   </>
                 )}
               </button>
