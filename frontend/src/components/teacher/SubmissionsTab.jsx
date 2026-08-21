@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import {
   FileText, Download, Clock, CheckCircle, AlertTriangle,
   Eye, Search, X, Code2, Copy, Check, MessageSquare,
-  ShieldCheck, ShieldX
+  ShieldCheck, ShieldX, Play
 } from "lucide-react";
 
 export default function SubmissionsTab({ lab }) {
@@ -15,6 +15,9 @@ export default function SubmissionsTab({ lab }) {
   const [search, setSearch] = useState("");
   const [viewingCode, setViewingCode] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [runningSubmission, setRunningSubmission] = useState(false);
+  const [runResults, setRunResults] = useState(null);
+  const [runOutput, setRunOutput] = useState(null);
 
   useEffect(() => {
     fetchPracticals();
@@ -49,6 +52,27 @@ export default function SubmissionsTab({ lab }) {
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       toast.error("Failed to copy");
+    }
+  };
+
+  const handleRunSubmission = async () => {
+    if (!viewingCode) return;
+    setRunningSubmission(true);
+    setRunResults(null);
+    setRunOutput(null);
+    try {
+      const response = await apiFetch(`submissions/submission/${viewingCode._id}/run`, { method: "POST" });
+      const data = await response.json();
+      if (data.mode === "simple") {
+        setRunOutput(data.output || null);
+      } else {
+        setRunResults(data.results || []);
+      }
+      toast.success("Submission executed");
+    } catch (error) {
+      toast.error(error.message || "Unable to run submission");
+    } finally {
+      setRunningSubmission(false);
     }
   };
 
@@ -201,7 +225,11 @@ export default function SubmissionsTab({ lab }) {
                       <div className="flex items-center gap-2">
                         {s.code ? (
                           <button
-                            onClick={() => setViewingCode(s)}
+                            onClick={() => {
+                              setViewingCode(s);
+                              setRunResults(null);
+                              setRunOutput(null);
+                            }}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-400/20 text-cyan-400 text-xs hover:bg-cyan-500/20 transition"
                           >
                             <Code2 size={12} />
@@ -327,6 +355,13 @@ export default function SubmissionsTab({ lab }) {
                   )}
                 </button>
                 <button
+                  onClick={handleRunSubmission}
+                  disabled={runningSubmission}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-400/20 text-emerald-300 text-sm hover:bg-emerald-500/20 transition disabled:opacity-50"
+                >
+                  {runningSubmission ? "Running..." : <><Play size={14} /> Run Code</>}
+                </button>
+                <button
                   onClick={() => {
                     setViewingCode(null);
                     setCopied(false);
@@ -343,6 +378,31 @@ export default function SubmissionsTab({ lab }) {
               <pre className="p-5 text-sm leading-6 text-gray-200 font-mono">
                 <code>{viewingCode.code || "// No code submitted"}</code>
               </pre>
+              {runOutput && (
+                <div className="border-t border-white/10 p-5 space-y-2">
+                  <h4 className="text-sm font-medium text-white">Output</h4>
+                  {runOutput.stdout && (
+                    <pre className="rounded-lg border border-emerald-400/20 bg-emerald-500/5 p-3 text-xs text-emerald-200 whitespace-pre-wrap">{runOutput.stdout}</pre>
+                  )}
+                  {runOutput.stderr && (
+                    <pre className="rounded-lg border border-red-400/20 bg-red-500/5 p-3 text-xs text-red-300 whitespace-pre-wrap">{runOutput.stderr}</pre>
+                  )}
+                  {!runOutput.stdout && !runOutput.stderr && (
+                    <p className="text-xs text-gray-500">No output produced</p>
+                  )}
+                </div>
+              )}
+              {runResults && (
+                <div className="border-t border-white/10 p-5 space-y-2">
+                  <h4 className="text-sm font-medium text-white">Test results</h4>
+                  {runResults.map((result, index) => (
+                    <div key={result.caseId || index} className={`rounded-lg border p-3 text-xs ${result.passed ? "border-emerald-400/20 bg-emerald-500/5" : "border-red-400/20 bg-red-500/5"}`}>
+                      <span className={result.passed ? "text-emerald-300" : "text-red-300"}>Test {index + 1}: {result.passed ? "Passed" : "Failed"}</span>
+                      <p className="mt-1 text-gray-400">Expected: {String(result.expected)} · Actual: {result.actualOutput || "(no output)"}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Footer */}
