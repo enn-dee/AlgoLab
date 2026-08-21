@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiFetch } from "@/utils/api";
 import { motion } from "motion/react";
@@ -10,24 +10,29 @@ import {
   Clock,
   CheckCircle,
   AlertTriangle,
-  Upload,
-  FileText,
   Eye,
   Calendar,
   BarChart3,
   CalendarCheck,
-  Download,
   X,
   Send,
   RotateCcw,
   Code2,
   Play,
   MessageSquare,
+  Lock,
 } from "lucide-react";
+
+const TABS = [
+  { id: "practicals", label: "Practicals", icon: FlaskConical },
+  { id: "marks", label: "Marks", icon: BarChart3 },
+  { id: "attendance", label: "Attendance", icon: CalendarCheck },
+];
 
 export default function StudentLabDetail() {
   const { labId } = useParams();
   const navigate = useNavigate();
+
   const [lab, setLab] = useState(null);
   const [practicals, setPracticals] = useState([]);
   const [submissions, setSubmissions] = useState({});
@@ -39,21 +44,36 @@ export default function StudentLabDetail() {
   const [showEditor, setShowEditor] = useState(false);
   const [editorPractical, setEditorPractical] = useState(null);
   const [code, setCode] = useState("");
+  const [language, setLanguage] = useState("python");
   const [submitting, setSubmitting] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [runResults, setRunResults] = useState([]);
+  const [runOutput, setRunOutput] = useState(null);
 
-  useEffect(() => {
-    fetchAllData();
-  }, [labId]);
+  const isMounted = useRef(true);
+  const abortControllerRef = useRef(null);
 
-  const fetchAllData = async () => {
+  const getStudentId = useCallback(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return user?.id || "";
+  }, []);
+
+  const fetchAllData = useCallback(async () => {
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    const signal = controller.signal;
+
     try {
       const [labRes, pracRes, subRes, marksRes, attRes] = await Promise.all([
-        apiFetch(`labs/${labId}`),
-        apiFetch(`practicals/lab/${labId}`),
-        apiFetch("submissions/my"),
-        apiFetch(`marks/lab/${labId}`),
-        apiFetch(`attendance/student/${getStudentId()}/${labId}`),
+        apiFetch(`labs/${labId}`, { signal }),
+        apiFetch(`practicals/lab/${labId}`, { signal }),
+        apiFetch("submissions/my", { signal }),
+        apiFetch(`marks/lab/${labId}`, { signal }),
+        apiFetch(`attendance/student/${getStudentId()}/${labId}`, { signal }),
       ]);
+
+      if (!isMounted.current) return;
 
       const labData = await labRes.json();
       const pracData = await pracRes.json();
@@ -71,19 +91,17 @@ export default function StudentLabDetail() {
       });
       setSubmissions(subMap);
 
-      // Load evaluations for each submission
       const evalMap = {};
       for (const sub of subArray) {
         try {
           const practicalId = sub.practicalId?._id || sub.practicalId;
           if (!practicalId) continue;
-          const evalRes = await apiFetch(`evaluations/submission/${sub._id}`);
+          const evalRes = await apiFetch(`evaluations/submission/${sub._id}`, { signal });
+          if (!isMounted.current) return;
           const evalData = await evalRes.json();
-          if (evalData && evalData._id) {
-            evalMap[practicalId] = evalData;
-          }
-        } catch (err) {
-          // No evaluation yet — that's fine
+          if (evalData?._id) evalMap[practicalId] = evalData;
+        } catch {
+          // ignore
         }
       }
       setEvaluations(evalMap);
@@ -93,23 +111,38 @@ export default function StudentLabDetail() {
         marksMap[m.practicalId?._id || m.practicalId] = m;
       });
       setMarks(marksMap);
-
       setAttendance(attData);
     } catch (err) {
+      if (err.name === "AbortError") return;
       console.error(err);
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
+      abortControllerRef.current = null;
     }
-  };
+  }, [labId, getStudentId]);
 
-  const getStudentId = () => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    return user.id || "";
-  };
+  useEffect(() => {
+    isMounted.current = true;
+    fetchAllData();
+    return () => {
+      isMounted.current = false;
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
+  }, [fetchAllData]);
 
-  const openEditor = async (practical) => {
+  const sortedPracticals = useMemo(
+    () => [...practicals].sort((a, b) => (a.order || 0) - (b.order || 0)),
+    [practicals]
+  );
+
+  const marksArray = useMemo(() => Object.values(marks), [marks]);
+
+  const openEditor = useCallback(async (practical) => {
     setEditorPractical(practical);
     setShowEditor(true);
+    setRunResults([]);
+    const initialLanguage = practical.execution?.allowedLanguages?.[0] || "python";
+    setLanguage(initialLanguage);
 
     try {
       const res = await apiFetch(`submissions/my/${practical._id}`);
@@ -118,68 +151,130 @@ export default function StudentLabDetail() {
         setCode(data.submission.code);
       } else {
         setCode(
+          practical.starterTemplate?.[initialLanguage]?.starterSolution ||
           practical.starterCode ||
-            "# Write your solution here\n\ndef solution(input):\n    # Your code here\n    pass\n",
+          "# Write your solution here\n\ndef solution(input):\n    # Your code here\n    pass\n"
         );
       }
-    } catch (err) {
+    } catch {
       setCode(
+        practical.starterTemplate?.[initialLanguage]?.starterSolution ||
         practical.starterCode ||
-          "# Write your solution here\n\ndef solution(input):\n    # Your code here\n    pass\n",
+        "# Write your solution here\n\ndef solution(input):\n    # Your code here\n    pass\n"
       );
     }
-  };
+  }, []);
 
-  const handleSubmitCode = async () => {
+  const handleRunCode = useCallback(async () => {
     if (!editorPractical) return;
-    setSubmitting(true);
+    if (!editorPractical.execution?.enabled) {
+      toast.error("Code execution is not enabled for this practical");
+      return;
+    }
+
+    setRunning(true);
+    setRunOutput(null);
+    setRunResults([]);
+
     try {
-      await apiFetch("submissions", {
+      const response = await apiFetch(`submissions/${editorPractical._id}/run`, {
         method: "POST",
         body: JSON.stringify({
-          practicalId: editorPractical._id,
-          code,
-          language: "python",
+          solutionCode: code,
+          language,
         }),
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Code execution failed");
+      }
+
+      const results = data.results || [];
+      setRunResults(results);
+
+      const passed = results.filter((r) => r.passed).length;
+      const total = results.length;
+
+      if (total === 0) {
+        setRunOutput({ stdout: "No public test cases found.", stderr: "" });
+        toast.info("No tests to run");
+      } else if (passed === total) {
+        setRunOutput({ stdout: `✅ All ${total} public tests passed!`, stderr: "" });
+        toast.success("All tests passed!");
+      } else {
+        setRunOutput({
+          stdout: `⚠️ ${passed}/${total} public tests passed.`,
+          stderr: `${total - passed} test(s) failed.`,
+        });
+        toast.warning(`${passed}/${total} tests passed`);
+      }
+    } catch (error) {
+      setRunOutput({ stdout: "", stderr: error.message });
+      toast.error(error.message);
+    } finally {
+      setRunning(false);
+    }
+  }, [editorPractical, code, language]);
+
+  const handleSubmitCode = useCallback(async () => {
+    if (!editorPractical) return;
+    setSubmitting(true);
+
+    try {
+      const response = await apiFetch(`submissions/${editorPractical._id}/submit`, {
+        method: "POST",
+        body: JSON.stringify({
+          solutionCode: code,
+          language,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Submission failed");
+      }
+
       toast.success("Code submitted successfully!");
       setShowEditor(false);
       setEditorPractical(null);
-      fetchAllData();
+      fetchAllData(); // refresh submissions & marks
     } catch (err) {
-      toast.error("Failed to submit code");
+      toast.error(err.message || "Failed to submit code");
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [editorPractical, code, language, fetchAllData]);
 
-  const getStatusBadge = (practicalId) => {
-    const sub = submissions[practicalId];
-    if (!sub)
-      return {
-        icon: Clock,
-        color: "text-gray-400 bg-gray-500/10",
-        label: "Pending",
-      };
-    if (sub.status === "late")
-      return {
-        icon: AlertTriangle,
-        color: "text-orange-400 bg-orange-500/10",
-        label: "Late",
-      };
-    return {
-      icon: CheckCircle,
-      color: "text-emerald-400 bg-emerald-500/10",
-      label: "Submitted",
-    };
-  };
+  const getStatusBadge = useCallback(
+    (practicalId) => {
+      const sub = submissions[practicalId];
+      if (!sub)
+        return { icon: Clock, color: "text-gray-400 bg-gray-500/10", label: "Pending" };
+      if (sub.status === "late")
+        return { icon: AlertTriangle, color: "text-orange-400 bg-orange-500/10", label: "Late" };
+      return { icon: CheckCircle, color: "text-emerald-400 bg-emerald-500/10", label: "Submitted" };
+    },
+    [submissions]
+  );
 
-  const tabs = [
-    { id: "practicals", label: "Practicals", icon: FlaskConical },
-    { id: "marks", label: "Marks", icon: BarChart3 },
-    { id: "attendance", label: "Attendance", icon: CalendarCheck },
-  ];
+  const resetCode = useCallback(() => {
+    setCode(
+      editorPractical?.starterTemplate?.[language]?.starterSolution ||
+      "# Write your solution here\n\ndef solution(input):\n    # Your code here\n    pass\n"
+    );
+  }, [editorPractical, language]);
 
+  const closeEditor = useCallback(() => {
+    setShowEditor(false);
+    setEditorPractical(null);
+    setRunResults([]);
+    setRunOutput(null);
+  }, []);
+
+  // --- Loading & error states ---
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-zinc-950 flex items-center justify-center">
@@ -199,6 +294,7 @@ export default function StudentLabDetail() {
     );
   }
 
+  // --- Render ---
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-zinc-950 p-4 md:p-6">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
@@ -215,9 +311,7 @@ export default function StudentLabDetail() {
             <ChevronLeft size={20} />
           </button>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white">
-              {lab.name}
-            </h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">{lab.name}</h1>
             <p className="text-sm text-gray-400">
               {lab.subjectCode} — {lab.session}
             </p>
@@ -226,7 +320,7 @@ export default function StudentLabDetail() {
 
         {/* TABS */}
         <div className="flex gap-2 overflow-x-auto pb-2">
-          {tabs.map((tab) => {
+          {TABS.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
@@ -253,182 +347,184 @@ export default function StudentLabDetail() {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-4"
           >
-            {practicals.length === 0 ? (
+            {sortedPracticals.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-white/10 py-16 text-center text-gray-500">
                 <FlaskConical size={40} className="mx-auto mb-3 opacity-50" />
                 <p>No practicals assigned yet</p>
               </div>
             ) : (
-              practicals
-                .sort((a, b) => (a.order || 0) - (b.order || 0))
-                .map((p, i) => {
-                  const badge = getStatusBadge(p._id);
-                  const BadgeIcon = badge.icon;
-                  const practicalMarks = marks[p._id];
-                  const practicalEval = evaluations[p._id];
-                  const isPastDeadline =
-                    p.deadline && new Date(p.deadline) < new Date();
-                  const isSubmitted = !!submissions[p._id];
+              sortedPracticals.map((p, i) => {
+                // Determine deadline (fallback to lab deadline if not set)
+                const deadline = p.deadline || lab?.deadline;
+                const isPastDeadline = deadline ? new Date(deadline) < new Date() : false;
+                // Debug: log to console to verify
+                // console.log(`Practical "${p.title}" deadline:`, deadline, "isPastDeadline:", isPastDeadline);
 
-                  return (
-                    <motion.div
-                      key={p._id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className={`rounded-2xl border backdrop-blur-xl p-5 transition-all ${
-                        practicalEval?.status === "approved"
-                          ? "bg-emerald-500/5 border-emerald-400/30"
-                          : practicalEval?.status === "rejected"
-                            ? "bg-red-500/5 border-red-400/30"
-                            : "bg-white/[0.04] border-white/10 hover:border-emerald-400/20"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-2 flex-wrap">
-                            <span className="text-xs bg-white/5 px-2 py-1 rounded-full text-gray-500">
-                              #{p.order || i + 1}
-                            </span>
-                            <h3 className="text-lg font-semibold text-white">
-                              {p.title}
-                            </h3>
+                const badge = getStatusBadge(p._id);
+                const BadgeIcon = badge.icon;
+                const practicalMarks = marks[p._id];
+                const practicalEval = evaluations[p._id];
+                const isSubmitted = !!submissions[p._id];
+
+                return (
+                  <motion.div
+                    key={p._id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className={`rounded-2xl border backdrop-blur-xl p-5 transition-all ${
+                      isPastDeadline
+                        ? "opacity-50 bg-gray-800/20 border-gray-600/30 pointer-events-none select-none"
+                        : practicalEval?.status === "approved"
+                        ? "bg-emerald-500/5 border-emerald-400/30"
+                        : practicalEval?.status === "rejected"
+                        ? "bg-red-500/5 border-red-400/30"
+                        : "bg-white/[0.04] border-white/10 hover:border-emerald-400/20"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-2 flex-wrap">
+                          <span className="text-xs bg-white/5 px-2 py-1 rounded-full text-gray-500">
+                            #{p.order || i + 1}
+                          </span>
+                          <h3 className="text-lg font-semibold text-white">{p.title}</h3>
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${badge.color}`}
+                          >
+                            <BadgeIcon size={12} />
+                            {badge.label}
+                          </span>
+                          {practicalEval && (
                             <span
-                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${badge.color}`}
-                            >
-                              <BadgeIcon size={12} />
-                              {badge.label}
-                            </span>
-                            {practicalEval && (
-                              <span
-                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border ${
-                                  practicalEval.status === "approved"
-                                    ? "text-emerald-400 bg-emerald-500/10 border-emerald-400/20"
-                                    : "text-red-400 bg-red-500/10 border-red-400/20"
-                                }`}
-                              >
-                                {practicalEval.status === "approved" ? (
-                                  <CheckCircle size={10} />
-                                ) : (
-                                  <AlertTriangle size={10} />
-                                )}
-                                {practicalEval.status === "approved"
-                                  ? "Approved"
-                                  : "Rejected"}
-                              </span>
-                            )}
-                          </div>
-
-                          {p.description && (
-                            <p className="text-sm text-gray-400 mb-3">
-                              {p.description}
-                            </p>
-                          )}
-
-                          {p.deadline && (
-                            <p
-                              className={`flex items-center gap-1 text-xs mb-3 ${isPastDeadline ? "text-red-400" : "text-gray-500"}`}
-                            >
-                              <Calendar size={12} />
-                              Deadline: {new Date(p.deadline).toLocaleString()}
-                              {isPastDeadline && " (Overdue)"}
-                            </p>
-                          )}
-
-                          {/* Evaluation Feedback */}
-                          {isSubmitted && practicalEval && (
-                            <div
-                              className={`mt-2 p-4 rounded-xl border ${
+                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border ${
                                 practicalEval.status === "approved"
-                                  ? "bg-emerald-500/5 border-emerald-400/20"
-                                  : "bg-red-500/5 border-red-400/20"
+                                  ? "text-emerald-400 bg-emerald-500/10 border-emerald-400/20"
+                                  : "text-red-400 bg-red-500/10 border-red-400/20"
                               }`}
                             >
-                              <div className="flex items-center gap-2 mb-1">
-                                {practicalEval.status === "approved" ? (
-                                  <CheckCircle
-                                    size={16}
-                                    className="text-emerald-400"
-                                  />
-                                ) : (
-                                  <AlertTriangle
-                                    size={16}
-                                    className="text-red-400"
-                                  />
-                                )}
-                                <span
-                                  className={`text-sm font-semibold ${
-                                    practicalEval.status === "approved"
-                                      ? "text-emerald-400"
-                                      : "text-red-400"
-                                  }`}
-                                >
-                                  {practicalEval.status === "approved"
-                                    ? "Approved"
-                                    : "Rejected"}
-                                </span>
-                              </div>
-                              {practicalEval.remarks ? (
-                                <div className="flex items-start gap-2 mt-2">
-                                  <MessageSquare
-                                    size={14}
-                                    className="text-yellow-400 mt-0.5 shrink-0"
-                                  />
-                                  <p className="text-sm text-gray-300 leading-relaxed">
-                                    {practicalEval.remarks}
-                                  </p>
-                                </div>
+                              {practicalEval.status === "approved" ? (
+                                <CheckCircle size={10} />
                               ) : (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  No feedback provided
-                                </p>
+                                <AlertTriangle size={10} />
                               )}
-                            </div>
+                              {practicalEval.status === "approved" ? "Approved" : "Rejected"}
+                            </span>
                           )}
-
-                          {practicalMarks && (
-                            <div className="mt-2 p-3 rounded-xl bg-emerald-500/5 border border-emerald-400/10">
-                              <p className="text-sm text-emerald-400 font-medium">
-                                Marks: {practicalMarks.total}
-                              </p>
-                            </div>
+                          {isPastDeadline && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-300 border border-red-400/30">
+                              <Lock size={10} />
+                              Closed
+                            </span>
                           )}
                         </div>
 
-                        <div className="flex gap-2 shrink-0">
-                          <button
-                            onClick={() => openEditor(p)}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 text-sm hover:bg-cyan-500/30 transition"
+                        {p.description && (
+                          <p className="text-sm text-gray-400 mb-3">{p.description}</p>
+                        )}
+
+                        {deadline && (
+                          <p
+                            className={`flex items-center gap-1 text-xs mb-3 ${
+                              isPastDeadline ? "text-red-400" : "text-gray-500"
+                            }`}
                           >
-                            <Code2 size={15} />
-                            {submissions[p._id] ? "Edit Code" : "Write Code"}
-                          </button>
-                          {p.instructions && (
-                            <button
-                              onClick={() => {
-                                toast(p.instructions, {
-                                  duration: 6000,
-                                  icon: "📋",
-                                  style: {
-                                    background: "#1a1a2e",
-                                    color: "#fff",
-                                    border: "1px solid rgba(255,255,255,0.1)",
-                                  },
-                                });
-                              }}
-                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 text-sm hover:bg-white/10 transition"
-                            >
-                              <Eye size={15} />
-                              <span className="hidden sm:inline">
-                                Instructions
+                            <Calendar size={12} />
+                            Deadline: {new Date(deadline).toLocaleString()}
+                            {isPastDeadline && " (Overdue)"}
+                          </p>
+                        )}
+
+                        {isSubmitted && practicalEval && (
+                          <div
+                            className={`mt-2 p-4 rounded-xl border ${
+                              practicalEval.status === "approved"
+                                ? "bg-emerald-500/5 border-emerald-400/20"
+                                : "bg-red-500/5 border-red-400/20"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              {practicalEval.status === "approved" ? (
+                                <CheckCircle size={16} className="text-emerald-400" />
+                              ) : (
+                                <AlertTriangle size={16} className="text-red-400" />
+                              )}
+                              <span
+                                className={`text-sm font-semibold ${
+                                  practicalEval.status === "approved"
+                                    ? "text-emerald-400"
+                                    : "text-red-400"
+                                }`}
+                              >
+                                {practicalEval.status === "approved" ? "Approved" : "Rejected"}
                               </span>
-                            </button>
-                          )}
-                        </div>
+                            </div>
+                            {practicalEval.remarks ? (
+                              <div className="flex items-start gap-2 mt-2">
+                                <MessageSquare
+                                  size={14}
+                                  className="text-yellow-400 mt-0.5 shrink-0"
+                                />
+                                <p className="text-sm text-gray-300 leading-relaxed">
+                                  {practicalEval.remarks}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-gray-500 mt-1">No feedback provided</p>
+                            )}
+                          </div>
+                        )}
+
+                        {practicalMarks && (
+                          <div className="mt-2 p-3 rounded-xl bg-emerald-500/5 border border-emerald-400/10">
+                            <p className="text-sm text-emerald-400 font-medium">
+                              Marks: {practicalMarks.total}
+                            </p>
+                          </div>
+                        )}
                       </div>
-                    </motion.div>
-                  );
-                })
+
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          onClick={() => openEditor(p)}
+                          disabled={isPastDeadline}
+                          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm transition ${
+                            isPastDeadline
+                              ? "bg-gray-600/20 border-gray-500/30 text-gray-500 cursor-not-allowed"
+                              : "bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/30"
+                          }`}
+                        >
+                          <Code2 size={15} />
+                          {isPastDeadline
+                            ? "Closed"
+                            : submissions[p._id]
+                            ? "Edit Code"
+                            : "Write Code"}
+                        </button>
+                        {p.instructions && (
+                          <button
+                            onClick={() => {
+                              toast(p.instructions, {
+                                duration: 6000,
+                                icon: "📋",
+                                style: {
+                                  background: "#1a1a2e",
+                                  color: "#fff",
+                                  border: "1px solid rgba(255,255,255,0.1)",
+                                },
+                              });
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 text-sm hover:bg-white/10 transition"
+                          >
+                            <Eye size={15} />
+                            <span className="hidden sm:inline">Instructions</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })
             )}
           </motion.div>
         )}
@@ -442,14 +538,13 @@ export default function StudentLabDetail() {
             className="space-y-4"
           >
             <div className="rounded-2xl border border-white/10 bg-black/20 p-5 overflow-x-auto">
-              {Object.keys(marks).length === 0 ? (
+              {marksArray.length === 0 ? (
                 <div className="text-center py-16 text-gray-500">
                   <BarChart3 size={40} className="mx-auto mb-3 opacity-50" />
                   <p>No marks available yet</p>
                 </div>
               ) : (
                 <table className="w-full text-sm text-left">
-                  {/* Remove observation, record, output from the table */}
                   <thead className="text-gray-400 border-b border-white/10">
                     <tr>
                       <th className="p-3">Practical</th>
@@ -461,14 +556,9 @@ export default function StudentLabDetail() {
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.values(marks).map((m, i) => (
-                      <tr
-                        key={i}
-                        className="border-b border-white/5 hover:bg-white/[0.02]"
-                      >
-                        <td className="p-3 text-white">
-                          {m.practicalId?.title || "—"}
-                        </td>
+                    {marksArray.map((m, i) => (
+                      <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02]">
+                        <td className="p-3 text-white">{m.practicalId?.title || "—"}</td>
                         <td className="p-3 text-gray-300">{m.viva}</td>
                         <td className="p-3 text-gray-300">{m.execution}</td>
                         <td className="p-3 text-gray-300">{m.attendance}</td>
@@ -498,28 +588,20 @@ export default function StudentLabDetail() {
                       <p className="text-4xl font-bold text-emerald-400">
                         {attendance.percentage}%
                       </p>
-                      <p className="text-sm text-gray-400 mt-2">
-                        Overall Attendance
-                      </p>
+                      <p className="text-sm text-gray-400 mt-2">Overall Attendance</p>
                     </div>
                     <div className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-emerald-400">Present</span>
-                        <span className="text-white font-semibold">
-                          {attendance.present}
-                        </span>
+                        <span className="text-white font-semibold">{attendance.present}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-red-400">Absent</span>
-                        <span className="text-white font-semibold">
-                          {attendance.absent}
-                        </span>
+                        <span className="text-white font-semibold">{attendance.absent}</span>
                       </div>
                       <div className="flex justify-between text-sm pt-1 border-t border-white/10">
                         <span className="text-gray-400">Total</span>
-                        <span className="text-white font-semibold">
-                          {attendance.total}
-                        </span>
+                        <span className="text-white font-semibold">{attendance.total}</span>
                       </div>
                     </div>
                   </div>
@@ -544,10 +626,7 @@ export default function StudentLabDetail() {
                 </div>
               ) : (
                 <div className="text-center py-16 text-gray-500">
-                  <CalendarCheck
-                    size={40}
-                    className="mx-auto mb-3 opacity-50"
-                  />
+                  <CalendarCheck size={40} className="mx-auto mb-3 opacity-50" />
                   <p>No attendance records yet</p>
                 </div>
               )}
@@ -566,24 +645,48 @@ export default function StudentLabDetail() {
           >
             <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 bg-white/5 shrink-0">
               <div>
-                <h3 className="text-lg font-semibold text-white">
-                  {editorPractical?.title}
-                </h3>
+                <h3 className="text-lg font-semibold text-white">{editorPractical?.title}</h3>
                 <p className="text-xs text-gray-400">
                   {editorPractical?.description || "Write your solution"}
                 </p>
+                {editorPractical?.starterTemplate?.[language] && (
+                  <p className="mt-1 text-xs text-cyan-300">
+                    Only the solution area is editable; setup and output code are protected.
+                  </p>
+                )}
+                <select
+                  value={language}
+                  onChange={(e) => {
+                    const nextLang = e.target.value;
+                    setLanguage(nextLang);
+                    setCode(
+                      editorPractical?.starterTemplate?.[nextLang]?.starterSolution || ""
+                    );
+                  }}
+                  className="rounded-lg border border-white/10 bg-black px-2 py-1 text-xs text-white"
+                >
+                  {(editorPractical?.execution?.allowedLanguages || ["python"]).map((item) => (
+                    <option key={item} value={item}>
+                      {item === "cpp" ? "C++" : item.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() =>
-                    setCode(
-                      "# Write your solution here\n\ndef solution(input):\n    # Your code here\n    pass\n",
-                    )
-                  }
+                  onClick={resetCode}
                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 text-xs hover:bg-white/10 transition"
                 >
                   <RotateCcw size={12} />
                   Reset
+                </button>
+                <button
+                  onClick={handleRunCode}
+                  disabled={running}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-400/20 text-cyan-300 text-xs hover:bg-cyan-500/20 transition disabled:opacity-50"
+                >
+                  <Play size={12} />
+                  {running ? "Running..." : "Run"}
                 </button>
                 <button
                   onClick={handleSubmitCode}
@@ -603,10 +706,7 @@ export default function StudentLabDetail() {
                   )}
                 </button>
                 <button
-                  onClick={() => {
-                    setShowEditor(false);
-                    setEditorPractical(null);
-                  }}
+                  onClick={closeEditor}
                   className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition"
                 >
                   <X size={18} />
@@ -614,26 +714,75 @@ export default function StudentLabDetail() {
               </div>
             </div>
 
-            <div className="flex-1">
-              <Editor
-                height="100%"
-                theme="vs-dark"
-                language="python"
-                value={code}
-                onChange={(value) => setCode(value || "")}
-                options={{
-                  fontSize: 14,
-                  minimap: { enabled: false },
-                  smoothScrolling: true,
-                  padding: { top: 16 },
-                  scrollBeyondLastLine: false,
-                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                  lineNumbers: "on",
-                  renderLineHighlight: "line",
-                  bracketPairColorization: { enabled: true },
-                }}
-              />
+            {/* Editor + Output Panel */}
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex-1 min-h-0">
+                <Editor
+                  height="100%"
+                  theme="vs-dark"
+                  language={language === "cpp" ? "cpp" : language}
+                  value={code}
+                  onChange={(value) => setCode(value || "")}
+                  options={{
+                    fontSize: 14,
+                    minimap: { enabled: false },
+                    smoothScrolling: true,
+                    padding: { top: 16 },
+                    scrollBeyondLastLine: false,
+                    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                    lineNumbers: "on",
+                    renderLineHighlight: "line",
+                    bracketPairColorization: { enabled: true },
+                  }}
+                />
+              </div>
+
+              {/* Output summary */}
+              {runOutput && (
+                <div className="border-t border-white/10 bg-black/40 p-3 max-h-40 overflow-y-auto text-xs font-mono flex-shrink-0">
+                  {runOutput.stdout && (
+                    <pre className="text-emerald-300 whitespace-pre-wrap">{runOutput.stdout}</pre>
+                  )}
+                  {runOutput.stderr && (
+                    <pre className="text-red-400 whitespace-pre-wrap">{runOutput.stderr}</pre>
+                  )}
+                  {!runOutput.stdout && !runOutput.stderr && (
+                    <p className="text-gray-500">(No output)</p>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* Detailed test results (from /run) */}
+            {runResults.length > 0 && (
+              <div className="max-h-44 overflow-y-auto border-t border-white/10 bg-black/30 p-4 flex-shrink-0">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Public test results
+                </p>
+                <div className="space-y-2">
+                  {runResults.map((result, index) => (
+                    <div
+                      key={result.caseId || index}
+                      className={`rounded-lg border px-3 py-2 text-xs ${
+                        result.passed
+                          ? "border-emerald-400/20 bg-emerald-500/5"
+                          : "border-red-400/20 bg-red-500/5"
+                      }`}
+                    >
+                      <span className={result.passed ? "text-emerald-300" : "text-red-300"}>
+                        Test {index + 1}: {result.passed ? "Passed" : "Failed"}
+                      </span>
+                      {!result.hidden && !result.passed && (
+                        <p className="mt-1 text-gray-400">
+                          Expected: {String(result.expected ?? "")} · Actual:{" "}
+                          {result.actualOutput || "(no output)"}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </motion.div>
         </div>
       )}
