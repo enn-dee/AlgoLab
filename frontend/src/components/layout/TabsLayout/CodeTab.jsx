@@ -33,6 +33,37 @@ function CodeTab({ algo }) {
   const [submitted, setSubmitted] = useState(false);
   const [customInput, setCustomInput] = useState("");
 
+  const getTemplate = () => {
+    const starter = algo?.problem?.starterCode?.python || "";
+    const marker = "#edit below this line to solve the problem";
+    const markerIndex = starter.indexOf(marker);
+    const suffixIndex = starter.indexOf("\n\ndef solve():");
+
+    if (markerIndex === -1 || suffixIndex === -1 || suffixIndex <= markerIndex) {
+      return { prefix: "", suffix: "", starterSolution: starter };
+    }
+
+    const markerEnd = starter.indexOf("\n", markerIndex) + 1;
+    return {
+      prefix: starter.slice(0, markerEnd),
+      suffix: starter.slice(suffixIndex),
+      starterSolution: starter.slice(markerEnd, suffixIndex).trim(),
+    };
+  };
+
+  const sourceCode = () => {
+    const template = getTemplate();
+    return `${template.prefix}${code}${template.suffix}`;
+  };
+
+  const extractSolution = (savedCode) => {
+    const template = getTemplate();
+    if (template.prefix && savedCode.startsWith(template.prefix) && savedCode.endsWith(template.suffix)) {
+      return savedCode.slice(template.prefix.length, savedCode.length - template.suffix.length).trim();
+    }
+    return savedCode;
+  };
+
   // ================= RESET =================
 
   const handleReset = async () => {
@@ -44,7 +75,7 @@ function CodeTab({ algo }) {
     if (!confirmReset) return;
 
     try {
-      const starterCode = algo.problem?.starterCode?.python || 
+      const starterCode = getTemplate().starterSolution ||
         `def solution():\n    # Write your code here\n    pass`;
 
       setCode(starterCode);
@@ -89,7 +120,7 @@ function CodeTab({ algo }) {
         // console.log("data: ", data)
         if (data?.submission?.code) {
 
-          setCode(data.submission.code);
+          setCode(extractSolution(data.submission.code));
 
           if (data.submission.passed) {
             setSubmitted(true);
@@ -97,9 +128,7 @@ function CodeTab({ algo }) {
 
         } else {
 
-          setCode(
-            algo.problem?.starterCode?.python || ""
-          );
+          setCode(getTemplate().starterSolution);
         }
 
       } catch (err) {
@@ -109,9 +138,7 @@ function CodeTab({ algo }) {
           err
         );
 
-        setCode(
-          algo.problem?.starterCode?.python || ""
-        );
+        setCode(getTemplate().starterSolution);
       }
     };
 
@@ -211,7 +238,7 @@ function CodeTab({ algo }) {
 
       const promises = tests.map((test) =>
         runCode({
-          code,
+          code: sourceCode(),
           input: customInput || formatInput(test.input),
         })
       );
@@ -273,7 +300,7 @@ function CodeTab({ algo }) {
         const test = tests[i];
 
         const res = await runCode({
-          code,
+          code: sourceCode(),
           input: formatInput(test.input),
         });
 
@@ -304,8 +331,6 @@ function CodeTab({ algo }) {
 
           setResults(resultsArray);
 
-          console.log("saved code: ", code)
-          
           // ✅ FIXED: Use algo-progress/save endpoint
           await apiFetch(
             "algo-progress/save",
@@ -314,7 +339,7 @@ function CodeTab({ algo }) {
 
               body: JSON.stringify({
                 algorithmSlug: algo.slug,
-                code,
+                code: sourceCode(),
                 language: "python",
                 passed: false,
               }),
@@ -349,7 +374,7 @@ function CodeTab({ algo }) {
 
           body: JSON.stringify({
             algorithmSlug: algo.slug,
-            code,
+            code: sourceCode(),
             language: "python",
             passed: true,
           }),
@@ -559,6 +584,14 @@ function CodeTab({ algo }) {
 
                 </div>
 
+                {getTemplate().prefix && (
+                  <pre className="mb-3 overflow-x-auto rounded-xl border border-white/10 bg-black/30 p-3 text-xs leading-5 text-slate-400 font-mono">
+                    <code>{getTemplate().prefix}</code>
+                  </pre>
+                )}
+                <p className="mb-2 text-xs text-cyan-300">
+                  {getTemplate().prefix ? "Editable solution area" : "Editor"}
+                </p>
                 <Editor
                   key={algo.slug}
                   height="100%"
@@ -585,6 +618,11 @@ function CodeTab({ algo }) {
                       "'JetBrains Mono', monospace",
                   }}
                 />
+                {getTemplate().suffix && (
+                  <pre className="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-black/30 p-3 text-xs leading-5 text-slate-400 font-mono">
+                    <code>{getTemplate().suffix}</code>
+                  </pre>
+                )}
 
               </div>
 

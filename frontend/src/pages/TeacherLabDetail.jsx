@@ -14,7 +14,7 @@ import ReportsTab from "../components/teacher/ReportsTab";
 import {
   ChevronLeft, Users, FlaskConical, FileText,
   CheckCheck, BarChart3, CalendarCheck, FileSpreadsheet,
-  Settings
+  Settings, History
 } from "lucide-react";
 
 const tabs = [
@@ -25,6 +25,7 @@ const tabs = [
   { id: "marks", label: "Marks", icon: BarChart3 },
   { id: "attendance", label: "Attendance", icon: CalendarCheck },
   { id: "reports", label: "Reports", icon: FileSpreadsheet },
+  { id: "history", label: "History", icon: History },
 ];
 
 export default function TeacherLabDetail() {
@@ -33,10 +34,15 @@ export default function TeacherLabDetail() {
   const [lab, setLab] = useState(null);
   const [activeTab, setActiveTab] = useState("students");
   const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState([]);
 
   useEffect(() => {
     fetchLab();
   }, [labId]);
+
+  useEffect(() => {
+    if (activeTab === "history") fetchHistory();
+  }, [activeTab, labId]);
 
   const fetchLab = async () => {
     try {
@@ -48,6 +54,14 @@ export default function TeacherLabDetail() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      const response = await apiFetch(`labs/${labId}/history`);
+      const data = await response.json();
+      if (response.ok) setHistory(data);
+    } catch (error) { console.error(error); }
   };
 
 
@@ -69,6 +83,14 @@ export default function TeacherLabDetail() {
       case "marks": return <MarksTab lab={lab} />;
       case "attendance": return <AttendanceTab lab={lab} />;
       case "reports": return <ReportsTab lab={lab} />;
+      case "history":
+        return <div className="space-y-3">{history.length ? history.map((entry) => (
+          <div key={entry._id} className="rounded-xl border border-white/10 bg-black/20 p-4">
+            <p className="font-medium text-white capitalize">{entry.entityType} {entry.action}</p>
+            <p className="mt-1 text-sm text-gray-400">{entry.actorName} ({entry.actorRole}) · {new Date(entry.createdAt).toLocaleString()}</p>
+            {entry.before && <details className="mt-2 text-xs text-gray-500"><summary>View change data</summary><pre className="mt-2 overflow-auto">{JSON.stringify({ before: entry.before, after: entry.after }, null, 2)}</pre></details>}
+          </div>
+        )) : <p className="text-gray-500">No changes recorded yet.</p>}</div>;
       default: return null;
     }
   };
