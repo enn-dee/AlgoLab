@@ -17,8 +17,22 @@ const labSchema = new mongoose.Schema({
   },
   teacherId: {
     type: mongoose.Schema.Types.ObjectId,
+    ref: "Teacher"
+  },
+  kind: {
+    type: String,
+    enum: ["academic", "private"],
+    default: "private",
+    index: true
+  },
+  ownerTeacherId: {
+    type: mongoose.Schema.Types.ObjectId,
     ref: "Teacher",
-    required: true
+    index: true
+  },
+  deadline: { type: Date },
+  rules: {
+    lateSubmissionAllowed: { type: Boolean, default: false }
   },
   status: {
     type: String,

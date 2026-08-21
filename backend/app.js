@@ -17,6 +17,8 @@ import attendanceRoutes from "./routes/attendance.js";
 import reportRoutes from "./routes/reports.js";
 import studentLabRoutes from "./routes/studentLab.js";
 import progressRoute from "./routes/progress.js";
+import adminLabRoutes from "./routes/adminLabs.js";
+import assignmentRoutes from "./routes/assignments.js";
 
 import connectDB from "./config/db.js";
 import path from "path";
@@ -45,6 +47,8 @@ app.use("/api/submissions", practicalSubmissionRoutes); // Only mounted once
 app.use("/api/progress", progressRoute);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/students", adminStudentsRoutes);
+app.use("/api/admin/labs", adminLabRoutes);
+app.use("/api/assignments", assignmentRoutes);
 app.use("/api/teacher", teacherAuthRoutes);
 app.use("/api/labs", labRoutes);
 app.use("/api/lab-students", studentRoutes);
@@ -57,6 +61,11 @@ app.use("/api/student", studentLabRoutes);
 
 app.get("/health", (req, res) => {
   return res.status(200).send("ok");
+});
+
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(err.status || 500).json({ error: err.message || "Internal server error" });
 });
 
 app.use((req, res) => {

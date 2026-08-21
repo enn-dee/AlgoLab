@@ -19,6 +19,8 @@ export default function StudentsTab({ lab, onUpdate }) {
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [rollNumber, setRollNumber] = useState("");
+  // Batch filter (e.g. "2022"). "All" means no batch filtering.
+  const [batchFilter, setBatchFilter] = useState("All");
 
   const [loading, setLoading] = useState({
     enrolled: false,
@@ -90,24 +92,17 @@ export default function StudentsTab({ lab, onUpdate }) {
     }));
 
     try {
-      const res = await apiFetch(
-        `lab-students/${lab._id}/enroll`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            rollNumber: rollNumber.trim(),
-          }),
-        }
-      );
+      const res = await apiFetch(`lab-students/${lab._id}/enroll`, {
+        method: "POST",
+        body: JSON.stringify({
+          rollNumber: rollNumber.trim(),
+        }),
+      });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(
-          data.msg ||
-          data.error ||
-          "Failed to add student"
-        );
+        throw new Error(data.msg || data.error || "Failed to add student");
       }
 
       toast.success(data.msg || "Student added");
@@ -133,24 +128,17 @@ export default function StudentsTab({ lab, onUpdate }) {
     }));
 
     try {
-      const res = await apiFetch(
-        `lab-students/${lab._id}/enroll`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            rollNumber: roll,
-          }),
-        }
-      );
+      const res = await apiFetch(`lab-students/${lab._id}/enroll`, {
+        method: "POST",
+        body: JSON.stringify({
+          rollNumber: roll,
+        }),
+      });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(
-          data.msg ||
-          data.error ||
-          "Failed to add student"
-        );
+        throw new Error(data.msg || data.error || "Failed to add student");
       }
 
       toast.success(`${roll} added`);
@@ -166,7 +154,7 @@ export default function StudentsTab({ lab, onUpdate }) {
       }));
     }
   };
-    const handleEnrollAll = async () => {
+  const handleEnrollAll = async () => {
     if (availableStudents.length === 0) {
       return toast.error("No students available to enroll");
     }
@@ -179,22 +167,15 @@ export default function StudentsTab({ lab, onUpdate }) {
     }));
 
     try {
-      const res = await apiFetch(
-        `lab-students/${lab._id}/bulk-enroll`,
-        {
-          method: "POST",
-          body: JSON.stringify({ rollNumbers }),
-        }
-      );
+      const res = await apiFetch(`lab-students/${lab._id}/bulk-enroll`, {
+        method: "POST",
+        body: JSON.stringify({ rollNumbers }),
+      });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(
-          data.msg ||
-          data.error ||
-          "Failed to enroll"
-        );
+        throw new Error(data.msg || data.error || "Failed to enroll");
       }
 
       toast.success(`${data.enrolled || 0} students enrolled`);
@@ -220,20 +201,16 @@ export default function StudentsTab({ lab, onUpdate }) {
     }));
 
     try {
-      await apiFetch(
-        `lab-students/${lab._id}/remove/${studentId}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      toast.success("Student removed");
+      await apiFetch(`lab-students/${lab._id}/remove/${studentId}`, {
+        method: "DELETE",
+      }).then(() => {
+        toast.success("Student removed");
+      });
 
       fetchEnrolledStudents();
       onUpdate();
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to remove");
+      toast.error(`Failed to remove ${err.message}`);
     } finally {
       setLoading((prev) => ({
         ...prev,
@@ -244,9 +221,7 @@ export default function StudentsTab({ lab, onUpdate }) {
 
   const handleRemoveAll = async () => {
     if (
-      !confirm(
-        `Remove ALL ${enrolledStudents.length} students from this lab?`
-      )
+      !confirm(`Remove ALL ${enrolledStudents.length} students from this lab?`)
     )
       return;
 
@@ -257,12 +232,9 @@ export default function StudentsTab({ lab, onUpdate }) {
 
     try {
       for (const student of enrolledStudents) {
-        await apiFetch(
-          `lab-students/${lab._id}/remove/${student._id}`,
-          {
-            method: "DELETE",
-          }
-        );
+        await apiFetch(`lab-students/${lab._id}/remove/${student._id}`, {
+          method: "DELETE",
+        });
       }
 
       toast.success("All students removed");
@@ -282,30 +254,38 @@ export default function StudentsTab({ lab, onUpdate }) {
 
   const filteredEnrolled = enrolledStudents.filter(
     (s) =>
-      (s.fullName || "")
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      (s.rollNumber || "")
-        .toLowerCase()
-        .includes(search.toLowerCase())
+      (s.fullName || "").toLowerCase().includes(search.toLowerCase()) ||
+      (s.rollNumber || "").toLowerCase().includes(search.toLowerCase())
   );
 
   const enrolledRolls = new Set(
-    enrolledStudents.map((s) =>
-      s.rollNumber?.toUpperCase()
-    )
+    enrolledStudents.map((s) => s.rollNumber?.toUpperCase())
   );
 
-  const availableStudents = allStudents.filter(
-    (s) =>
-      !enrolledRolls.has(
-        s.rollNumber?.toUpperCase()
-      )
-  );
+  // Compute available batches from all students (first two digits -> 20xx)
+  const batchesSet = new Set();
+  allStudents.forEach((s) => {
+    const rn = s.rollNumber || "";
+    const m = rn.match(/^(\d{2})/);
+    if (m) batchesSet.add("20" + m[1]);
+  });
+  const batches = Array.from(batchesSet).sort((a, b) => b.localeCompare(a));
+
+  const availableStudents = allStudents.filter((s) => {
+    const roll = s.rollNumber || "";
+    const rollUpper = roll.toUpperCase();
+    // exclude already enrolled
+    if (enrolledRolls.has(rollUpper)) return false;
+    // if no batch filter selected, include
+    if (batchFilter === "All") return true;
+    const m = roll.match(/^(\d{2})/);
+    if (!m) return false;
+    const batch = "20" + m[1];
+    return batch === batchFilter;
+  });
 
   return (
     <div className="space-y-5">
-
       {/* HEADER */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
@@ -326,9 +306,7 @@ export default function StudentsTab({ lab, onUpdate }) {
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-400/20 text-red-400 hover:bg-red-500/20 transition text-sm disabled:opacity-50"
             >
               <Trash2 size={15} />
-              {loading.removingAll
-                ? "Removing..."
-                : "Remove All"}
+              {loading.removingAll ? "Removing..." : "Remove All"}
             </button>
           )}
 
@@ -357,14 +335,14 @@ export default function StudentsTab({ lab, onUpdate }) {
               Add Students to {lab.name}
             </h3>
 
-            <button
+            {/* <button
               onClick={() => setShowAdd(false)}
             >
               <X
                 size={18}
                 className="text-gray-400"
               />
-            </button>
+            </button> */}
           </div>
 
           <div className="flex gap-3 items-end">
@@ -376,14 +354,29 @@ export default function StudentsTab({ lab, onUpdate }) {
               <input
                 type="text"
                 value={rollNumber}
-                onChange={(e) =>
-                  setRollNumber(
-                    e.target.value.toUpperCase()
-                  )
-                }
+                onChange={(e) => setRollNumber(e.target.value.toUpperCase())}
                 placeholder="e.g. 22CS001"
                 className="w-full p-2.5 rounded-xl bg-black/30 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
+            </div>
+
+            <div className="w-48">
+              <label className="text-xs text-gray-500 mb-1 block">
+                Filter by Batch
+              </label>
+
+              <select
+                value={batchFilter}
+                onChange={(e) => setBatchFilter(e.target.value)}
+                className="w-full p-2.5 rounded-xl bg-black/30 border border-white/10 text-white focus:outline-none"
+              >
+                <option value="All">All Batches</option>
+                {batches.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <button
@@ -394,7 +387,7 @@ export default function StudentsTab({ lab, onUpdate }) {
               {loading.adding ? "Adding..." : "Add"}
             </button>
           </div>
-                    {availableStudents.length > 0 && (
+          {availableStudents.length > 0 && (
             <div className="border-t border-white/10 pt-4">
               <button
                 onClick={handleEnrollAll}
@@ -409,7 +402,9 @@ export default function StudentsTab({ lab, onUpdate }) {
                 ) : (
                   <>
                     <UserCheck size={18} />
-                    Enroll All Available Students ({availableStudents.length})
+                    Enroll All Available Students({
+                      availableStudents.length
+                    }) {batchFilter != "All" ? `Of Batch ${batchFilter}` : ""}
                   </>
                 )}
               </button>
@@ -452,9 +447,7 @@ export default function StudentsTab({ lab, onUpdate }) {
                     </div>
 
                     <button
-                      onClick={() =>
-                        handleQuickAdd(student.rollNumber)
-                      }
+                      onClick={() => handleQuickAdd(student.rollNumber)}
                       disabled={loading.quickAdding === student.rollNumber}
                       className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-400/20 text-purple-300 text-xs hover:bg-purple-500/20 transition disabled:opacity-50"
                     >
@@ -477,10 +470,7 @@ export default function StudentsTab({ lab, onUpdate }) {
 
       {/* SEARCH */}
       <div className="relative max-w-md">
-        <Search
-          size={16}
-          className="absolute left-3 top-3 text-gray-500"
-        />
+        <Search size={16} className="absolute left-3 top-3 text-gray-500" />
 
         <input
           type="text"
@@ -501,9 +491,7 @@ export default function StudentsTab({ lab, onUpdate }) {
           <div className="text-center py-12 text-gray-500 border border-dashed border-white/10 rounded-2xl">
             <Users size={32} className="mx-auto mb-2 opacity-30" />
             <p>No students enrolled yet</p>
-            <p className="text-xs mt-1">
-              Click "Add Students" to enroll
-            </p>
+            <p className="text-xs mt-1">Click "Add Students" to enroll</p>
           </div>
         ) : (
           filteredEnrolled.map((student, i) => (
@@ -520,12 +508,8 @@ export default function StudentsTab({ lab, onUpdate }) {
                 </div>
 
                 <div>
-                  <p className="text-white font-medium">
-                    {student.fullName}
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    {student.rollNumber}
-                  </p>
+                  <p className="text-white font-medium">{student.fullName}</p>
+                  <p className="text-sm text-gray-400">{student.rollNumber}</p>
                 </div>
               </div>
 
