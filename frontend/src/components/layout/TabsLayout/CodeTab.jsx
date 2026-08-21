@@ -363,6 +363,19 @@ function CodeTab({ algo }) {
     }
   };
 
+  const handleEditorMount = (editor, monaco) => {
+    const errorMsg = "Function Disabled";
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC, () => {
+      toast.error(errorMsg);
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, () => {
+      toast.error(errorMsg);
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyX, () => {
+      toast.error(errorMsg);
+    });
+  };
+
   return (
     <div className="h-[80vh] overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl shadow-2xl">
       <ResizablePanelGroup direction="horizontal">
@@ -501,7 +514,8 @@ function CodeTab({ algo }) {
                   {getTemplate().prefix && (
                     <div className="">
                       <Editor
-                      className="pointer-events-none cursor-none"
+                        className="pointer-events-none cursor-none"
+                        onMount={handleEditorMount}
                         key={`${algo.slug}-prefix`}
                         height={`${Math.max(
                           50,
@@ -544,6 +558,7 @@ function CodeTab({ algo }) {
                       language="python"
                       value={code}
                       onChange={handleCodeChange}
+                      onMount={handleEditorMount}
                       options={{
                         fontSize: 14,
                         minimap: { enabled: false },
