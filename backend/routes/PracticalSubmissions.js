@@ -3,122 +3,298 @@ import Submission from "../models/Submission.js";
 import Practical from "../models/Practical.js";
 import Evaluation from "../models/Evaluation.js";
 import { authMiddleware } from "../middleware/auth.js";
+import { loadPracticalLab, requireLabAccess } from "../middleware/labAccess.js";
+import { runJudge0Cases, runJudge0Simple } from "../utils/judge0.js";
 
 const router = express.Router();
+const MAX_SOURCE_LENGTH = 100_000;
 
-// STUDENT SUBMIT CODE
-router.post("/", authMiddleware, async (req, res) => {
+const loadPractical = async (req, res, next) => {
   try {
-    const { practicalId, code, language } = req.body;
-    const studentId = req.user.id;
-
+    const practicalId = req.params.practicalId || req.body.practicalId;
     const practical = await Practical.findById(practicalId);
-    const isLate = practical?.deadline && new Date() > new Date(practical.deadline);
+    if (!practical)
+      return res.status(404).json({ error: "Practical not found" });
+    req.practical = practical;
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
 
-    let submission = await Submission.findOne({ studentId, practicalId });
+const exposeResults = (results, testCases) =>
+  results.map((result, index) => {
+    const testCase = testCases[index];
+    return testCase.visibility === "public"
+      ? result
+      : { caseId: result.caseId, passed: result.passed, hidden: true };
+  });
 
-    if (submission) {
-      submission.code = code;
-      submission.language = language || "python";
-      submission.status = isLate ? "late" : "submitted";
-      submission.submittedAt = new Date();
-      await submission.save();
-    } else {
-      submission = await Submission.create({
-        studentId,
-        practicalId,
-        code,
-        language: language || "python",
-        status: isLate ? "late" : "submitted",
-        submittedAt: new Date()
+const resolveLanguage = (practical, submissionLanguage) => {
+  const allowed = practical.execution?.allowedLanguages?.length
+    ? practical.execution.allowedLanguages
+    : ["python"];
+  if (allowed.includes(submissionLanguage)) return submissionLanguage;
+  return allowed[0];
+};
+
+const buildSourceCode = (practical, solutionCode, language) => {
+  const template = practical.starterTemplate?.[language];
+  if (template?.prefix || template?.suffix) {
+    return `${template.prefix || ""}\n${solutionCode}\n${template.suffix || ""}`;
+  }
+  return solutionCode;
+};
+
+const evaluate = async (practical, solutionCode, language, publicOnly) => {
+  const sourceCode = buildSourceCode(practical, solutionCode, language);
+  const testCases = practical.testCases.filter(
+    (test) => !publicOnly || test.visibility === "public",
+  );
+  if (!testCases.length) throw new Error("No test cases are configured");
+  const results = await runJudge0Cases({
+    sourceCode,
+    language,
+    testCases,
+    execution: practical.execution,
+  });
+  return { testCases, results };
+};
+
+const runTeacherSubmission = async (req, res, next) => {
+  try {
+    const submission = await Submission.findById(req.params.submissionId);
+    if (!submission)
+      return res.status(404).json({ error: "Submission not found" });
+    const practical = await Practical.findById(submission.practicalId);
+    if (!practical)
+      return res.status(404).json({ error: "Practical not found" });
+    req.practical = practical;
+    return loadPracticalLab(req, res, (loadError) => {
+      if (loadError) return next(loadError);
+      return requireLabAccess("manage")(req, res, async (accessError) => {
+        if (accessError) return next(accessError);
+        const language = resolveLanguage(practical, submission.language);
+        const sourceCode = buildSourceCode(
+          practical,
+          submission.code,
+          language,
+        );
+        const execution = practical.execution?.enabled
+          ? practical.execution
+          : { timeLimitSeconds: 5, memoryLimitKb: 128000 };
+
+        if (practical.testCases?.length) {
+          const { testCases, results } = await evaluate(
+            practical,
+            submission.code,
+            language,
+            false,
+          );
+          return res.json({
+            mode: "tests",
+            language,
+            results: results.map((result, index) => ({
+              ...result,
+              input: testCases[index].input,
+              expected: testCases[index].expected,
+              visibility: testCases[index].visibility,
+            })),
+          });
+        }
+
+        const output = await runJudge0Simple({
+          sourceCode,
+          language,
+          execution,
+        });
+        res.json({ mode: "simple", language, output });
       });
-    }
-
-    res.json(submission);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    });
+  } catch (error) {
+    next(error);
   }
-});
+};
 
-// GET SUBMISSION FOR STUDENT (for a specific practical) - with evaluation
-router.get("/my/:practicalId", authMiddleware, async (req, res) => {
+router.post("/submission/:submissionId/run", authMiddleware, runTeacherSubmission);
+
+router.post(
+  "/:practicalId/run",
+  authMiddleware,
+  loadPractical,
+  loadPracticalLab,
+  requireLabAccess("view"),
+  async (req, res, next) => {
+    try {
+      const { solutionCode, language = "python" } = req.body;
+      if (
+        typeof solutionCode !== "string" ||
+        solutionCode.length > MAX_SOURCE_LENGTH
+      )
+        return res.status(400).json({ error: "Invalid solution code" });
+      if (!req.practical.execution.enabled)
+        return res
+          .status(400)
+          .json({ error: "Execution is disabled for this practical" });
+      if (!req.practical.execution.allowedLanguages.includes(language))
+        return res.status(400).json({ error: "Language is not allowed" });
+      const { testCases, results } = await evaluate(
+        req.practical,
+        solutionCode,
+        language,
+        true,
+      );
+      res.json({ results: exposeResults(results, testCases) });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.post(
+  "/:practicalId/submit",
+  authMiddleware,
+  loadPractical,
+  loadPracticalLab,
+  requireLabAccess("submit"),
+  async (req, res, next) => {
+    try {
+      const { solutionCode, language = "python", idempotencyKey } = req.body;
+      if (
+        typeof solutionCode !== "string" ||
+        solutionCode.length > MAX_SOURCE_LENGTH
+      )
+        return res.status(400).json({ error: "Invalid solution code" });
+      if (!req.practical.execution.enabled)
+        return res
+          .status(400)
+          .json({ error: "Execution is disabled for this practical" });
+      if (!req.practical.execution.allowedLanguages.includes(language))
+        return res.status(400).json({ error: "Language is not allowed" });
+      if (idempotencyKey) {
+        const existing = await Submission.findOne({
+          idempotencyKey,
+          studentId: req.user.id,
+        });
+        if (existing)
+          return res.json({ submission: existing, duplicate: true });
+      }
+      const { testCases, results } = await evaluate(
+        req.practical,
+        solutionCode,
+        language,
+        false,
+      );
+      const totalWeight = testCases.reduce(
+        (sum, test) => sum + (test.weight || 1),
+        0,
+      );
+      const passedWeight = results.reduce(
+        (sum, result) => sum + (result.passed ? result.weight : 0),
+        0,
+      );
+      const submission = await Submission.create({
+        studentId: req.user.id,
+        practicalId: req.practical._id,
+        code: solutionCode,
+        language,
+        status: "submitted",
+        submittedAt: new Date(),
+        score: totalWeight ? Math.round((passedWeight / totalWeight) * 100) : 0,
+        testSummary: {
+          passed: results.filter((result) => result.passed).length,
+          total: results.length,
+        },
+        testResults: results.map(({ weight, ...result }) => result),
+        idempotencyKey,
+      });
+      res
+        .status(201)
+        .json({ submission, results: exposeResults(results, testCases) });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+// Legacy submission endpoint: keeps manually reviewed practicals working.
+router.post(
+  "/",
+  authMiddleware,
+  loadPractical,
+  loadPracticalLab,
+  requireLabAccess("submit"),
+  async (req, res, next) => {
+    try {
+      const { code, language = "python" } = req.body;
+      if (typeof code !== "string" || code.length > MAX_SOURCE_LENGTH)
+        return res.status(400).json({ error: "Invalid code" });
+      const submission = await Submission.findOneAndUpdate(
+        { studentId: req.user.id, practicalId: req.practical._id },
+        { code, language, status: "submitted", submittedAt: new Date() },
+        { upsert: true, new: true, runValidators: true },
+      );
+      res.json(submission);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.get(
+  "/my/:practicalId",
+  authMiddleware,
+  loadPractical,
+  loadPracticalLab,
+  requireLabAccess("view"),
+  async (req, res, next) => {
+    try {
+      const submission = await Submission.findOne({
+        studentId: req.user.id,
+        practicalId: req.practical._id,
+      });
+      const evaluation = submission
+        ? await Evaluation.findOne({ submissionId: submission._id })
+        : null;
+      res.json({ submission, evaluation });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.get("/my", authMiddleware, async (req, res, next) => {
   try {
-    const submission = await Submission.findOne({
+    if (req.user.role !== "student")
+      return res.status(403).json({ error: "Student access required" });
+    const submissions = await Submission.find({
       studentId: req.user.id,
-      practicalId: req.params.practicalId
-    });
-
-    let evaluation = null;
-    if (submission) {
-      evaluation = await Evaluation.findOne({ submissionId: submission._id });
-    }
-
-    res.json({
-      submission,
-      evaluation
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET ALL MY SUBMISSIONS
-router.get("/my", authMiddleware, async (req, res) => {
-  try {
-    const submissions = await Submission.find({ studentId: req.user.id })
-      .populate("practicalId", "title deadline");
+    }).populate("practicalId", "title deadline labId");
     res.json(submissions);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    next(error);
   }
 });
 
-// GET SUBMISSIONS BY PRACTICAL (TEACHER)
-router.get("/practical/:practicalId", authMiddleware, async (req, res) => {
-  try {
-    const submissions = await Submission.find({ practicalId: req.params.practicalId })
-      .populate("studentId", "fullName rollNumber");
-
-    const submissionIds = submissions.map(s => s._id);
-    const evaluations = await Evaluation.find({ submissionId: { $in: submissionIds } });
-
-    const evalMap = {};
-    evaluations.forEach(e => { evalMap[e.submissionId.toString()] = e; });
-
-    const result = submissions.map(s => ({
-      ...s.toObject(),
-      evaluation: evalMap[s._id.toString()] || null
-    }));
-
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET ALL SUBMISSIONS FOR A LAB (with evaluation)
-router.get("/lab/:labId", authMiddleware, async (req, res) => {
+router.get("/lab/:labId", authMiddleware, async (req, res, next) => {
   try {
     const practicals = await Practical.find({ labId: req.params.labId });
-    const practicalIds = practicals.map(p => p._id);
-    const submissions = await Submission.find({ practicalId: { $in: practicalIds } })
-      .populate("studentId", "fullName rollNumber")
-      .populate("practicalId", "title");
-
-    const submissionIds = submissions.map(s => s._id);
-    const evaluations = await Evaluation.find({ submissionId: { $in: submissionIds } });
-
-    const evalMap = {};
-    evaluations.forEach(e => { evalMap[e.submissionId.toString()] = e; });
-
-    const result = submissions.map(s => ({
-      ...s.toObject(),
-      evaluation: evalMap[s._id.toString()] || null
-    }));
-
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (!practicals.length) return res.json([]);
+    req.practical = practicals[0];
+    return loadPracticalLab(req, res, (loadError) => {
+      if (loadError) return next(loadError);
+      return requireLabAccess("manage")(req, res, async (accessError) => {
+        if (accessError) return next(accessError);
+        const submissions = await Submission.find({
+          practicalId: { $in: practicals.map((item) => item._id) },
+        })
+          .populate("studentId", "fullName rollNumber")
+          .populate("practicalId", "title");
+        res.json(submissions);
+      });
+    });
+  } catch (error) {
+    next(error);
   }
 });
 

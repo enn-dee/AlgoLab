@@ -4,7 +4,7 @@ import { apiFetch } from "@/utils/api";
 import { motion } from "motion/react";
 import {
   BookOpen, FlaskConical, Code2, ChevronRight,
-  ArrowUpRight, Calendar, User, Sparkles,
+  ArrowUpRight, Calendar, User, Clock, Sparkles,
   BrainCircuit, Rocket, Flame
 } from "lucide-react";
 
@@ -159,12 +159,14 @@ export default function StudentDashboard() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {labs.map((lab, i) => (
-                <motion.div
+              {labs.map((lab, i) => {
+                const expired = Boolean(lab.deadline && new Date(lab.deadline) < new Date());
+                return <motion.div
                   key={lab._id}
-                  whileHover={{ y: -4 }}
-                  onClick={() => navigate(`/student/lab/${lab._id}`)}
-                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 cursor-pointer hover:border-emerald-400/30 transition-all"
+                  whileHover={expired ? undefined : { y: -4 }}
+                  onClick={() => !expired && navigate(`/student/lab/${lab._id}`)}
+                  aria-disabled={expired}
+                  className={`group relative overflow-hidden rounded-2xl border p-5 transition-all ${expired ? "border-white/5 bg-zinc-900/70 text-gray-500 opacity-55 cursor-not-allowed grayscale" : "border-white/10 bg-white/[0.04] backdrop-blur-xl cursor-pointer hover:border-emerald-400/30"}`}
                 >
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_40%)]" />
                   <div className="relative">
@@ -176,6 +178,9 @@ export default function StudentDashboard() {
                         <div>
                           <h3 className="text-lg font-semibold text-white">{lab.name}</h3>
                           <p className="text-sm text-gray-400">{lab.subjectCode}</p>
+                          {lab.kind === "academic" && (
+                            <span className="mt-1 inline-block rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2 py-0.5 text-[11px] text-cyan-300">Shared curriculum</span>
+                          )}
                         </div>
                       </div>
                       <ArrowUpRight size={18} className="text-gray-500 group-hover:text-emerald-400 transition" />
@@ -183,10 +188,11 @@ export default function StudentDashboard() {
                     <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
                       <span className="flex items-center gap-1"><Calendar size={12} /> {lab.session}</span>
                       <span className="flex items-center gap-1"><User size={12} /> {lab.teacherId?.fullName || "Teacher"}</span>
+                      {expired && <span className="flex items-center gap-1 text-red-300"><Clock size={12} /> Closed</span>}
                     </div>
                   </div>
-                </motion.div>
-              ))}
+                </motion.div>;
+              })}
             </div>
           )}
         </motion.div>

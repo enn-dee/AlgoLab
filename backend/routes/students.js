@@ -1,125 +1,144 @@
 import express from "express";
 import Lab from "../models/Lab.js";
 import User from "../models/User.js";
+import Enrollment from "../models/Enrollment.js";
 import { authMiddleware } from "../middleware/auth.js";
+import { loadLab, requireLabAccess } from "../middleware/labAccess.js";
 
 const router = express.Router();
 
-// ADD STUDENT TO LAB (by roll number)
-router.post("/:labId/enroll", authMiddleware, async (req, res) => {
-  try {
-    const { rollNumber } = req.body;
-    const lab = await Lab.findById(req.params.labId);
-
-    if (!lab) return res.status(404).json({ msg: "Lab not found" });
-
-    if (!rollNumber) {
-      return res.status(400).json({ msg: "Roll number is required" });
-    }
-
-    // Find student by roll number
-    const student = await User.findOne({ rollNumber: rollNumber.toUpperCase() });
-
-    if (!student) {
-      return res.status(404).json({ msg: "Student not found with that roll number" });
-    }
-
-    const studentId = student._id.toString();
-
-    if (!lab.students.map(s => s.toString()).includes(studentId)) {
-      lab.students.push(student._id);
-      await lab.save();
-    }
-
-    // Return populated lab
-    const updatedLab = await Lab.findById(req.params.labId).populate("students", "fullName rollNumber");
-    res.json({ msg: "Student enrolled", lab: updatedLab });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// REMOVE STUDENT FROM LAB
-router.delete("/:labId/remove/:studentId", authMiddleware, async (req, res) => {
-  try {
-    const lab = await Lab.findById(req.params.labId);
-    if (!lab) return res.status(404).json({ msg: "Lab not found" });
-
-    lab.students = lab.students.filter(s => s.toString() !== req.params.studentId);
+const enrol = async (lab, student, enrolledBy) => {
+  const enrollment = await Enrollment.findOneAndUpdate(
+    { labId: lab._id, studentId: student._id },
+    { enrolledBy, status: "active" },
+    { upsert: true, new: true, runValidators: true }
+  );
+  // Keep legacy clients working while Enrollment becomes authoritative.
+  if (!lab.students.some((id) => String(id) === String(student._id))) {
+    lab.students.push(student._id);
     await lab.save();
-
-    const updatedLab = await Lab.findById(req.params.labId).populate("students", "fullName rollNumber");
-    res.json(updatedLab);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
-});
+  return enrollment;
+};
 
-// BULK UPLOAD STUDENTS (by roll numbers)
-router.post("/:labId/bulk-enroll", authMiddleware, async (req, res) => {
-  try {
-    const { rollNumbers } = req.body;
-
-    const lab = await Lab.findById(req.params.labId);
-    if (!lab) return res.status(404).json({ msg: "Lab not found" });
-
-    if (!rollNumbers || rollNumbers.length === 0) {
-      return res.status(400).json({ msg: "Roll numbers are required" });
+router.post(
+  "/:labId/enroll",
+  authMiddleware,
+  loadLab,
+  requireLabAccess("manage"),
+  async (req, res, next) => {
+    try {
+      const rollNumber = req.body.rollNumber?.trim().toUpperCase();
+      if (!rollNumber)
+        return res.status(400).json({ error: "rollNumber is required" });
+      const student = await User.findOne({ rollNumber, role: "student" });
+      if (!student) return res.status(404).json({ error: "Student not found" });
+      const enrollment = await enrol(req.lab, student, req.user.id);
+      res.status(201).json({
+        enrollment,
+        student: {
+          id: student._id,
+          fullName: student.fullName,
+          rollNumber: student.rollNumber,
+        },
+      });
+    } catch (error) {
+      next(error);
     }
+  }
+);
 
-    // Normalize roll numbers
-    const normalizedRolls = rollNumbers.map(r => r.trim().toUpperCase());
+router.post(
+  "/:labId/bulk-enroll",
+  authMiddleware,
+  loadLab,
+  requireLabAccess("manage"),
+  async (req, res, next) => {
+    try {
+      const rollNumbers = [
+        ...new Set(
+          (req.body.rollNumbers || [])
+            .map((roll) => roll.trim().toUpperCase())
+            .filter(Boolean)
+        ),
+      ];
+      if (!rollNumbers.length)
+        return res.status(400).json({ error: "rollNumbers is required" });
+      const students = await User.find({
+        role: "student",
+        rollNumber: { $in: rollNumbers },
+      });
 
-    // Find students by roll numbers
-    const students = await User.find({ rollNumber: { $in: normalizedRolls } });
-
-    if (students.length === 0) {
-      return res.status(404).json({ msg: "No students found with those roll numbers" });
-    }
-
-    const existingIds = lab.students.map(s => s.toString());
-    let addedCount = 0;
-
-    students.forEach(student => {
-      if (!existingIds.includes(student._id.toString())) {
-        lab.students.push(student._id);
-        addedCount++;
+      // concurrent enroll fix
+      for (const student of students) {
+        await enrol(req.lab, student, req.user.id);
       }
-    });
+      // await Promise.all(
+      //   students.map((student) => enrol(req.lab, student, req.user.id))
+      // );
 
-    await lab.save();
-
-    const updatedLab = await Lab.findById(req.params.labId).populate("students", "fullName rollNumber");
-    res.json({ enrolled: addedCount, total: students.length, lab: updatedLab });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+      res.json({
+        enrolled: students.length,
+        missing: rollNumbers.filter(
+          (roll) => !students.some((student) => student.rollNumber === roll)
+        ),
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
-// GET ENROLLED STUDENTS
-router.get("/:labId", authMiddleware, async (req, res) => {
-  try {
-    const lab = await Lab.findById(req.params.labId).populate("students", "fullName rollNumber");
-    if (!lab) return res.status(404).json({ msg: "Lab not found" });
-    res.json(lab.students);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+router.delete(
+  "/:labId/remove/:studentId",
+  authMiddleware,
+  loadLab,
+  requireLabAccess("manage"),
+  async (req, res, next) => {
+    try {
+      await Enrollment.findOneAndUpdate(
+        { labId: req.lab._id, studentId: req.params.studentId },
+        { status: "withdrawn" }
+      );
+      req.lab.students = req.lab.students.filter(
+        (id) => String(id) !== req.params.studentId
+      );
+      await req.lab.save();
+      // res.status(204).send();
+      res.json({
+        success: true,
+        message: "Student removed",
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
-// BATCH MANAGEMENT - CREATE
-router.post("/:labId/batches", authMiddleware, async (req, res) => {
-  try {
-    const { name, studentIds } = req.body;
-    const lab = await Lab.findById(req.params.labId);
-    if (!lab) return res.status(404).json({ msg: "Lab not found" });
-
-    lab.batches.push({ name, students: studentIds });
-    await lab.save();
-    res.json(lab);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+router.get(
+  "/:labId",
+  authMiddleware,
+  loadLab,
+  requireLabAccess("manage"),
+  async (req, res, next) => {
+    try {
+      const enrollments = await Enrollment.find({
+        labId: req.lab._id,
+        status: "active",
+      }).populate("studentId", "fullName rollNumber");
+      // Legacy labs with no backfill still remain usable.
+      if (!enrollments.length && req.lab.students.length) {
+        const legacy = await Lab.findById(req.lab._id).populate(
+          "students",
+          "fullName rollNumber"
+        );
+        return res.json(legacy.students);
+      }
+      res.json(enrollments.map((item) => item.studentId));
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 export default router;

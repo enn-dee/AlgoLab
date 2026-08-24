@@ -168,7 +168,7 @@ export default function PracticalsTab({ lab }) {
     }
   };
 
-    const handleEdit = (p) => {
+  const handleEdit = (p) => {
     setEditing(p._id);
 
     const deadlineDate = p.deadline
@@ -322,7 +322,7 @@ export default function PracticalsTab({ lab }) {
             />
           </div>
 
-                    {/* Deadline - Date + Time */}
+          {/* Deadline - Date + Time */}
           <div>
             <label className="text-xs text-gray-500 mb-2 block">
               Deadline
@@ -347,7 +347,7 @@ export default function PracticalsTab({ lab }) {
                       </span>
 
                       {form.deadline && (
-                        <button
+                        <span
                           onClick={(e) => {
                             e.stopPropagation();
                             setForm({
@@ -355,10 +355,10 @@ export default function PracticalsTab({ lab }) {
                               deadline: null,
                             });
                           }}
-                          className="text-gray-500 hover:text-red-400"
+                          className="text-gray-500 hover:text-red-400 cursor-pointer"
                         >
                           <X size={14} />
-                        </button>
+                        </span>
                       )}
                     </button>
                   </PopoverTrigger>
