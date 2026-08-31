@@ -70,7 +70,7 @@ function CodeTab({ algo }) {
       return savedCode
         .slice(
           template.prefix.length,
-          savedCode.length - template.suffix.length
+          savedCode.length - template.suffix.length,
         )
         .trim();
     }
@@ -195,7 +195,7 @@ function CodeTab({ algo }) {
           language_id: 71,
           stdin: input,
         }),
-      }
+      },
     );
 
     const data = await response.json();
@@ -222,7 +222,7 @@ function CodeTab({ algo }) {
         runCode({
           code: sourceCode(),
           input: customInput || formatInput(test.input),
-        })
+        }),
       );
 
       const outputs = await Promise.all(promises);
@@ -364,7 +364,7 @@ function CodeTab({ algo }) {
   };
 
   const handleEditorMount = (editor, monaco) => {
-    const errorMsg = "Function Disabled";
+    const errorMsg = "Copy-Paste not allowed";
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC, () => {
       toast.error(errorMsg);
     });
@@ -519,7 +519,7 @@ function CodeTab({ algo }) {
                         key={`${algo.slug}-prefix`}
                         height={`${Math.max(
                           50,
-                          getTemplate().prefix.split("\n").length + 1
+                          getTemplate().prefix.split("\n").length + 1,
                         )}px`}
                         theme="vs-dark"
                         language="python"
