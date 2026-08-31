@@ -44,11 +44,10 @@ app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
 connectDB();
 
-
 app.use("/api/algorithms", algorithmRoutes);
 app.use("/api/algo-progress", algorithmSubmissionRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/submissions", practicalSubmissionRoutes); 
+app.use("/api/submissions", practicalSubmissionRoutes);
 app.use("/api/progress", progressRoute);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/students", adminStudentsRoutes);
@@ -70,14 +69,17 @@ app.get("/health", (req, res) => {
 
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(err.status || 500).json({ error: err.message || "Internal server error" });
-});
-app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+  res
+    .status(err.status || 500)
+    .json({ error: err.message || "Internal server error" });
 });
 
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
+});
+
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found" });
 });
 
 app.listen(3000, () => {
