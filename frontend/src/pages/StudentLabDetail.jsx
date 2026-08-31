@@ -53,6 +53,24 @@ export default function StudentLabDetail() {
   const isMounted = useRef(true);
   const abortControllerRef = useRef(null);
 
+  const handleEditorMount = (editor, monaco) => {
+    const errorMsg = "Copy-Paste not allowed";
+
+    // Disable Ctrl+C (Copy)
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC, () => {
+      toast.error(errorMsg);
+    });
+
+    // Disable Ctrl+V (Paste)
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, () => {
+      toast.error(errorMsg);
+    });
+
+    // Disable Ctrl+X (Cut)
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyX, () => {
+      toast.error(errorMsg);
+    });
+  };
   const getStudentId = useCallback(() => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     return user?.id || "";
@@ -96,7 +114,9 @@ export default function StudentLabDetail() {
         try {
           const practicalId = sub.practicalId?._id || sub.practicalId;
           if (!practicalId) continue;
-          const evalRes = await apiFetch(`evaluations/submission/${sub._id}`, { signal });
+          const evalRes = await apiFetch(`evaluations/submission/${sub._id}`, {
+            signal,
+          });
           if (!isMounted.current) return;
           const evalData = await evalRes.json();
           if (evalData?._id) evalMap[practicalId] = evalData;
@@ -132,7 +152,7 @@ export default function StudentLabDetail() {
 
   const sortedPracticals = useMemo(
     () => [...practicals].sort((a, b) => (a.order || 0) - (b.order || 0)),
-    [practicals]
+    [practicals],
   );
 
   const marksArray = useMemo(() => Object.values(marks), [marks]);
@@ -141,7 +161,8 @@ export default function StudentLabDetail() {
     setEditorPractical(practical);
     setShowEditor(true);
     setRunResults([]);
-    const initialLanguage = practical.execution?.allowedLanguages?.[0] || "python";
+    const initialLanguage =
+      practical.execution?.allowedLanguages?.[0] || "python";
     setLanguage(initialLanguage);
 
     try {
@@ -152,15 +173,15 @@ export default function StudentLabDetail() {
       } else {
         setCode(
           practical.starterTemplate?.[initialLanguage]?.starterSolution ||
-          practical.starterCode ||
-          "# Write your solution here\n\ndef solution(input):\n    # Your code here\n    pass\n"
+            practical.starterCode ||
+            "# Write your solution here\n\ndef solution(input):\n    # Your code here\n    pass\n",
         );
       }
     } catch {
       setCode(
         practical.starterTemplate?.[initialLanguage]?.starterSolution ||
-        practical.starterCode ||
-        "# Write your solution here\n\ndef solution(input):\n    # Your code here\n    pass\n"
+          practical.starterCode ||
+          "# Write your solution here\n\ndef solution(input):\n    # Your code here\n    pass\n",
       );
     }
   }, []);
@@ -177,13 +198,16 @@ export default function StudentLabDetail() {
     setRunResults([]);
 
     try {
-      const response = await apiFetch(`submissions/${editorPractical._id}/run`, {
-        method: "POST",
-        body: JSON.stringify({
-          solutionCode: code,
-          language,
-        }),
-      });
+      const response = await apiFetch(
+        `submissions/${editorPractical._id}/run`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            solutionCode: code,
+            language,
+          }),
+        },
+      );
 
       const data = await response.json();
 
@@ -201,7 +225,10 @@ export default function StudentLabDetail() {
         setRunOutput({ stdout: "No public test cases found.", stderr: "" });
         toast.info("No tests to run");
       } else if (passed === total) {
-        setRunOutput({ stdout: `✅ All ${total} public tests passed!`, stderr: "" });
+        setRunOutput({
+          stdout: `✅ All ${total} public tests passed!`,
+          stderr: "",
+        });
         toast.success("All tests passed!");
       } else {
         setRunOutput({
@@ -223,13 +250,16 @@ export default function StudentLabDetail() {
     setSubmitting(true);
 
     try {
-      const response = await apiFetch(`submissions/${editorPractical._id}/submit`, {
-        method: "POST",
-        body: JSON.stringify({
-          solutionCode: code,
-          language,
-        }),
-      });
+      const response = await apiFetch(
+        `submissions/${editorPractical._id}/submit`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            solutionCode: code,
+            language,
+          }),
+        },
+      );
 
       const data = await response.json();
 
@@ -252,18 +282,30 @@ export default function StudentLabDetail() {
     (practicalId) => {
       const sub = submissions[practicalId];
       if (!sub)
-        return { icon: Clock, color: "text-gray-400 bg-gray-500/10", label: "Pending" };
+        return {
+          icon: Clock,
+          color: "text-gray-400 bg-gray-500/10",
+          label: "Pending",
+        };
       if (sub.status === "late")
-        return { icon: AlertTriangle, color: "text-orange-400 bg-orange-500/10", label: "Late" };
-      return { icon: CheckCircle, color: "text-emerald-400 bg-emerald-500/10", label: "Submitted" };
+        return {
+          icon: AlertTriangle,
+          color: "text-orange-400 bg-orange-500/10",
+          label: "Late",
+        };
+      return {
+        icon: CheckCircle,
+        color: "text-emerald-400 bg-emerald-500/10",
+        label: "Submitted",
+      };
     },
-    [submissions]
+    [submissions],
   );
 
   const resetCode = useCallback(() => {
     setCode(
       editorPractical?.starterTemplate?.[language]?.starterSolution ||
-      "# Write your solution here\n\ndef solution(input):\n    # Your code here\n    pass\n"
+        "# Write your solution here\n\ndef solution(input):\n    # Your code here\n    pass\n",
     );
   }, [editorPractical, language]);
 
@@ -311,7 +353,9 @@ export default function StudentLabDetail() {
             <ChevronLeft size={20} />
           </button>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white">{lab.name}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">
+              {lab.name}
+            </h1>
             <p className="text-sm text-gray-400">
               {lab.subjectCode} — {lab.session}
             </p>
@@ -356,7 +400,9 @@ export default function StudentLabDetail() {
               sortedPracticals.map((p, i) => {
                 // Determine deadline (fallback to lab deadline if not set)
                 const deadline = p.deadline || lab?.deadline;
-                const isPastDeadline = deadline ? new Date(deadline) < new Date() : false;
+                const isPastDeadline = deadline
+                  ? new Date(deadline) < new Date()
+                  : false;
                 // Debug: log to console to verify
                 // console.log(`Practical "${p.title}" deadline:`, deadline, "isPastDeadline:", isPastDeadline);
 
@@ -376,10 +422,10 @@ export default function StudentLabDetail() {
                       isPastDeadline
                         ? "opacity-50 bg-gray-800/20 border-gray-600/30 pointer-events-none select-none"
                         : practicalEval?.status === "approved"
-                        ? "bg-emerald-500/5 border-emerald-400/30"
-                        : practicalEval?.status === "rejected"
-                        ? "bg-red-500/5 border-red-400/30"
-                        : "bg-white/[0.04] border-white/10 hover:border-emerald-400/20"
+                          ? "bg-emerald-500/5 border-emerald-400/30"
+                          : practicalEval?.status === "rejected"
+                            ? "bg-red-500/5 border-red-400/30"
+                            : "bg-white/[0.04] border-white/10 hover:border-emerald-400/20"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -388,7 +434,9 @@ export default function StudentLabDetail() {
                           <span className="text-xs bg-white/5 px-2 py-1 rounded-full text-gray-500">
                             #{p.order || i + 1}
                           </span>
-                          <h3 className="text-lg font-semibold text-white">{p.title}</h3>
+                          <h3 className="text-lg font-semibold text-white">
+                            {p.title}
+                          </h3>
                           <span
                             className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${badge.color}`}
                           >
@@ -408,7 +456,9 @@ export default function StudentLabDetail() {
                               ) : (
                                 <AlertTriangle size={10} />
                               )}
-                              {practicalEval.status === "approved" ? "Approved" : "Rejected"}
+                              {practicalEval.status === "approved"
+                                ? "Approved"
+                                : "Rejected"}
                             </span>
                           )}
                           {isPastDeadline && (
@@ -420,7 +470,9 @@ export default function StudentLabDetail() {
                         </div>
 
                         {p.description && (
-                          <p className="text-sm text-gray-400 mb-3">{p.description}</p>
+                          <p className="text-sm text-gray-400 mb-3">
+                            {p.description}
+                          </p>
                         )}
 
                         {deadline && (
@@ -445,9 +497,15 @@ export default function StudentLabDetail() {
                           >
                             <div className="flex items-center gap-2 mb-1">
                               {practicalEval.status === "approved" ? (
-                                <CheckCircle size={16} className="text-emerald-400" />
+                                <CheckCircle
+                                  size={16}
+                                  className="text-emerald-400"
+                                />
                               ) : (
-                                <AlertTriangle size={16} className="text-red-400" />
+                                <AlertTriangle
+                                  size={16}
+                                  className="text-red-400"
+                                />
                               )}
                               <span
                                 className={`text-sm font-semibold ${
@@ -456,7 +514,9 @@ export default function StudentLabDetail() {
                                     : "text-red-400"
                                 }`}
                               >
-                                {practicalEval.status === "approved" ? "Approved" : "Rejected"}
+                                {practicalEval.status === "approved"
+                                  ? "Approved"
+                                  : "Rejected"}
                               </span>
                             </div>
                             {practicalEval.remarks ? (
@@ -470,7 +530,9 @@ export default function StudentLabDetail() {
                                 </p>
                               </div>
                             ) : (
-                              <p className="text-xs text-gray-500 mt-1">No feedback provided</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                No feedback provided
+                              </p>
                             )}
                           </div>
                         )}
@@ -498,8 +560,8 @@ export default function StudentLabDetail() {
                           {isPastDeadline
                             ? "Closed"
                             : submissions[p._id]
-                            ? "Edit Code"
-                            : "Write Code"}
+                              ? "Edit Code"
+                              : "Write Code"}
                         </button>
                         {p.instructions && (
                           <button
@@ -517,7 +579,9 @@ export default function StudentLabDetail() {
                             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 text-sm hover:bg-white/10 transition"
                           >
                             <Eye size={15} />
-                            <span className="hidden sm:inline">Instructions</span>
+                            <span className="hidden sm:inline">
+                              Instructions
+                            </span>
                           </button>
                         )}
                       </div>
@@ -557,8 +621,13 @@ export default function StudentLabDetail() {
                   </thead>
                   <tbody>
                     {marksArray.map((m, i) => (
-                      <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02]">
-                        <td className="p-3 text-white">{m.practicalId?.title || "—"}</td>
+                      <tr
+                        key={i}
+                        className="border-b border-white/5 hover:bg-white/[0.02]"
+                      >
+                        <td className="p-3 text-white">
+                          {m.practicalId?.title || "—"}
+                        </td>
                         <td className="p-3 text-gray-300">{m.viva}</td>
                         <td className="p-3 text-gray-300">{m.execution}</td>
                         <td className="p-3 text-gray-300">{m.attendance}</td>
@@ -588,20 +657,28 @@ export default function StudentLabDetail() {
                       <p className="text-4xl font-bold text-emerald-400">
                         {attendance.percentage}%
                       </p>
-                      <p className="text-sm text-gray-400 mt-2">Overall Attendance</p>
+                      <p className="text-sm text-gray-400 mt-2">
+                        Overall Attendance
+                      </p>
                     </div>
                     <div className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-emerald-400">Present</span>
-                        <span className="text-white font-semibold">{attendance.present}</span>
+                        <span className="text-white font-semibold">
+                          {attendance.present}
+                        </span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-red-400">Absent</span>
-                        <span className="text-white font-semibold">{attendance.absent}</span>
+                        <span className="text-white font-semibold">
+                          {attendance.absent}
+                        </span>
                       </div>
                       <div className="flex justify-between text-sm pt-1 border-t border-white/10">
                         <span className="text-gray-400">Total</span>
-                        <span className="text-white font-semibold">{attendance.total}</span>
+                        <span className="text-white font-semibold">
+                          {attendance.total}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -626,7 +703,10 @@ export default function StudentLabDetail() {
                 </div>
               ) : (
                 <div className="text-center py-16 text-gray-500">
-                  <CalendarCheck size={40} className="mx-auto mb-3 opacity-50" />
+                  <CalendarCheck
+                    size={40}
+                    className="mx-auto mb-3 opacity-50"
+                  />
                   <p>No attendance records yet</p>
                 </div>
               )}
@@ -645,13 +725,16 @@ export default function StudentLabDetail() {
           >
             <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 bg-white/5 shrink-0">
               <div>
-                <h3 className="text-lg font-semibold text-white">{editorPractical?.title}</h3>
+                <h3 className="text-lg font-semibold text-white">
+                  {editorPractical?.title}
+                </h3>
                 <p className="text-xs text-gray-400">
                   {editorPractical?.description || "Write your solution"}
                 </p>
                 {editorPractical?.starterTemplate?.[language] && (
                   <p className="mt-1 text-xs text-cyan-300">
-                    Only the solution area is editable; setup and output code are protected.
+                    Only the solution area is editable; setup and output code
+                    are protected.
                   </p>
                 )}
                 <select
@@ -660,12 +743,15 @@ export default function StudentLabDetail() {
                     const nextLang = e.target.value;
                     setLanguage(nextLang);
                     setCode(
-                      editorPractical?.starterTemplate?.[nextLang]?.starterSolution || ""
+                      editorPractical?.starterTemplate?.[nextLang]
+                        ?.starterSolution || "",
                     );
                   }}
                   className="rounded-lg border border-white/10 bg-black px-2 py-1 text-xs text-white"
                 >
-                  {(editorPractical?.execution?.allowedLanguages || ["python"]).map((item) => (
+                  {(
+                    editorPractical?.execution?.allowedLanguages || ["python"]
+                  ).map((item) => (
                     <option key={item} value={item}>
                       {item === "cpp" ? "C++" : item.toUpperCase()}
                     </option>
@@ -718,6 +804,7 @@ export default function StudentLabDetail() {
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex-1 min-h-0">
                 <Editor
+                  onMount={handleEditorMount}
                   height="100%"
                   theme="vs-dark"
                   language={language === "cpp" ? "cpp" : language}
@@ -741,10 +828,14 @@ export default function StudentLabDetail() {
               {runOutput && (
                 <div className="border-t border-white/10 bg-black/40 p-3 max-h-40 overflow-y-auto text-xs font-mono flex-shrink-0">
                   {runOutput.stdout && (
-                    <pre className="text-emerald-300 whitespace-pre-wrap">{runOutput.stdout}</pre>
+                    <pre className="text-emerald-300 whitespace-pre-wrap">
+                      {runOutput.stdout}
+                    </pre>
                   )}
                   {runOutput.stderr && (
-                    <pre className="text-red-400 whitespace-pre-wrap">{runOutput.stderr}</pre>
+                    <pre className="text-red-400 whitespace-pre-wrap">
+                      {runOutput.stderr}
+                    </pre>
                   )}
                   {!runOutput.stdout && !runOutput.stderr && (
                     <p className="text-gray-500">(No output)</p>
@@ -769,7 +860,11 @@ export default function StudentLabDetail() {
                           : "border-red-400/20 bg-red-500/5"
                       }`}
                     >
-                      <span className={result.passed ? "text-emerald-300" : "text-red-300"}>
+                      <span
+                        className={
+                          result.passed ? "text-emerald-300" : "text-red-300"
+                        }
+                      >
                         Test {index + 1}: {result.passed ? "Passed" : "Failed"}
                       </span>
                       {!result.hidden && !result.passed && (
