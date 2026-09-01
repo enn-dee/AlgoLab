@@ -18,6 +18,7 @@ const curriculum = [
       "Pointers",
       "Structures",
       "File handling",
+      "Dijkstra's Algorithm",
     ],
   },
   {
@@ -77,6 +78,62 @@ const templateFor = (language, title) => {
   };
 };
 
+const dijkstraPracticalConfig = () => ({
+  description:
+    "Use Dijkstra's algorithm to find the shortest path distances from a source vertex in a weighted graph.",
+  instructions:
+    "Write a complete C program using the starter code below. The first line contains n and source. The next n lines contain the adjacency matrix representing the graph. Implement Dijkstra's algorithm and print the distance from the source to each vertex in the order A, B, C, ... . Use the starter only as a guide; write the actual solution in the marked section.",
+  starterTemplate: {
+    c: {
+      prefix: "",
+      starterSolution: `#include<stdio.h>
+#include<limits.h>
+#include<stdbool.h>
+
+void greedy_dijsktra(int graph[6][6], int src ){
+ // write your solution here
+}
+
+int main(){
+  int graph[6][6] = {
+     {0, 1, 2, 0, 0, 0},
+     {1, 0, 0, 5, 1, 0},
+     {2, 0, 0, 2, 3, 0},
+     {0, 5, 2, 0, 2, 2},
+     {0, 1, 3, 2, 0, 1},
+     {0, 0, 0, 2, 1, 0}
+  };
+  greedy_dijsktra(graph,0);
+  return 0;
+}`,
+      suffix: "",
+    },
+  },
+  testCases: [
+    {
+      input: "",
+      expected:
+        "Vertex\t\tdist from source vertex\nA\t\t\t0\nB\t\t\t1\nC\t\t\t2\nD\t\t\t4\nE\t\t\t2\nF\t\t\t3\n",
+      visibility: "public",
+      weight: 1,
+    },
+    {
+      input: "",
+      expected:
+        "Vertex\t\tdist from source vertex\nA\t\t\t0\nB\t\t\t1\nC\t\t\t2\nD\t\t\t4\nE\t\t\t2\nF\t\t\t3\n",
+      visibility: "public",
+      weight: 1,
+    },
+    {
+      input: "",
+      expected:
+        "Vertex\t\tdist from source vertex\nA\t\t\t0\nB\t\t\t1\nC\t\t\t2\nD\t\t\t4\nE\t\t\t2\nF\t\t\t3\n",
+      visibility: "public",
+      weight: 1,
+    },
+  ],
+});
+
 const seed = async () => {
   await connectDB();
   await Lab.deleteMany({
@@ -102,17 +159,27 @@ const seed = async () => {
         order: index + 1,
       });
       if (!existing) {
+        const customPractical =
+          item.language === "c" && title === "Dijkstra's Algorithm"
+            ? dijkstraPracticalConfig()
+            : null;
+
         await Practical.create({
           labId: lab._id,
           title: `${index + 1}. ${title}`,
-          description: `Core ${item.name} exercise: ${title}.`,
+          description:
+            customPractical?.description ??
+            `Core ${item.name} exercise: ${title}.`,
           instructions:
+            customPractical?.instructions ??
             "Complete the solution area. Your teacher may add test cases and instructions.",
           order: index + 1,
           starterTemplate: {
-            [item.language]: templateFor(item.language, title),
+            [item.language]:
+              customPractical?.starterTemplate?.[item.language] ??
+              templateFor(item.language, title),
           },
-          testCases: [
+          testCases: customPractical?.testCases ?? [
             { input: "", expected: "", visibility: "public", weight: 1 },
           ],
           execution: {
