@@ -58,7 +58,13 @@ const evaluate = async (practical, solutionCode, language, publicOnly) => {
     testCases,
     execution: practical.execution,
   });
-  return { testCases, results };
+  return {
+    testCases,
+    results: results.map((result, index) => ({
+      ...result,
+      expected: testCases[index].expected,
+    })),
+  };
 };
 
 const runTeacherSubmission = async (req, res, next) => {

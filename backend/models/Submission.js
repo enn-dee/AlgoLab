@@ -42,7 +42,8 @@ const submissionSchema = new mongoose.Schema({
     passed: Boolean,
     runtimeMs: Number,
     memoryKb: Number,
-    actualOutput: String
+    actualOutput: String,
+    expected: mongoose.Schema.Types.Mixed
   }],
   idempotencyKey: { type: String, sparse: true, unique: true }
 }, { timestamps: true });
