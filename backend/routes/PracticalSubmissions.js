@@ -25,9 +25,10 @@ const loadPractical = async (req, res, next) => {
 const exposeResults = (results, testCases) =>
   results.map((result, index) => {
     const testCase = testCases[index];
-    return testCase.visibility === "public"
-      ? result
-      : { caseId: result.caseId, passed: result.passed, hidden: true };
+    if (testCase.visibility === "public") {
+      return { ...result, expected: testCase.expected };
+    }
+    return { caseId: result.caseId, passed: result.passed, hidden: true };
   });
 
 const resolveLanguage = (practical, submissionLanguage) => {
@@ -122,7 +123,44 @@ const runTeacherSubmission = async (req, res, next) => {
   }
 };
 
-router.post("/submission/:submissionId/run", authMiddleware, runTeacherSubmission);
+router.post(
+  "/submission/:submissionId/run",
+  authMiddleware,
+  runTeacherSubmission,
+);
+
+// router.post(
+//   "/:practicalId/run",
+//   authMiddleware,
+//   loadPractical,
+//   loadPracticalLab,
+//   requireLabAccess("view"),
+//   async (req, res, next) => {
+//     try {
+//       const { solutionCode, language = "python" } = req.body;
+//       if (
+//         typeof solutionCode !== "string" ||
+//         solutionCode.length > MAX_SOURCE_LENGTH
+//       )
+//         return res.status(400).json({ error: "Invalid solution code" });
+//       if (!req.practical.execution.enabled)
+//         return res
+//           .status(400)
+//           .json({ error: "Execution is disabled for this practical" });
+//       if (!req.practical.execution.allowedLanguages.includes(language))
+//         return res.status(400).json({ error: "Language is not allowed" });
+//       const { testCases, results } = await evaluate(
+//         req.practical,
+//         solutionCode,
+//         language,
+//         true,
+//       );
+//       res.json({ results: exposeResults(results, testCases) });
+//     } catch (error) {
+//       next(error);
+//     }
+//   },
+// );
 
 router.post(
   "/:practicalId/run",
@@ -132,7 +170,9 @@ router.post(
   requireLabAccess("view"),
   async (req, res, next) => {
     try {
-      const { solutionCode, language = "python" } = req.body;
+      const { solutionCode, language = "python", customStdin } = req.body;
+
+      // Validation (same as before)
       if (
         typeof solutionCode !== "string" ||
         solutionCode.length > MAX_SOURCE_LENGTH
@@ -144,6 +184,25 @@ router.post(
           .json({ error: "Execution is disabled for this practical" });
       if (!req.practical.execution.allowedLanguages.includes(language))
         return res.status(400).json({ error: "Language is not allowed" });
+
+      const sourceCode = buildSourceCode(req.practical, solutionCode, language);
+
+      // ── NEW: custom input branch ──
+      if (
+        customStdin !== undefined &&
+        customStdin !== null &&
+        customStdin.trim() !== ""
+      ) {
+        const output = await runJudge0Simple({
+          sourceCode,
+          language,
+          stdin: String(customStdin).trim(),
+          execution: req.practical.execution,
+        });
+        return res.json({ mode: "custom", output });
+      }
+
+      // ── public tests branch (existing code) ──
       const { testCases, results } = await evaluate(
         req.practical,
         solutionCode,
@@ -156,7 +215,6 @@ router.post(
     }
   },
 );
-
 router.post(
   "/:practicalId/submit",
   authMiddleware,
