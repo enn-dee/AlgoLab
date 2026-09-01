@@ -59,9 +59,10 @@ const practicalSchema = new mongoose.Schema({
     },
     testCases: [{
       input: mongoose.Schema.Types.Mixed,
-      expected: { type: String, default: "" },
+      expected: { type: mongoose.Schema.Types.Mixed, default: "" },
       visibility: { type: String, enum: ["public", "hidden"], default: "hidden" },
-      weight: { type: Number, default: 1, min: 0 }
+      weight: { type: Number, default: 1, min: 0 },
+      checker: { type: String, default: null }
     }],
     execution: {
       enabled: { type: Boolean, default: false },

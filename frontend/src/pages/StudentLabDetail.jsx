@@ -241,9 +241,8 @@ export default function StudentLabDetail() {
       } else {
         setRunOutput({
           stdout: `⚠️ ${passed}/${total} public tests passed.`,
-          stderr: `${total - passed} test(s) failed.`,
         });
-        toast.warning(`${passed}/${total} tests passed`);
+        toast.error(`${passed}/${total} tests passed`);
       }
     } catch (error) {
       setRunOutput({ stdout: "", stderr: error.message });
@@ -910,12 +909,12 @@ export default function StudentLabDetail() {
                       >
                         Test {index + 1}: {result.passed ? "Passed" : "Failed"}
                       </span>
-                      {!result.hidden && !result.passed && (
+                      {/* {!result.hidden && !result.passed && (
                         <p className="mt-1 text-gray-400">
                           Expected: {String(result.expected ?? "")} · Actual:{" "}
                           {result.actualOutput || "(no output)"}
                         </p>
-                      )}
+                      )} */}
                     </div>
                   ))}
                 </div>

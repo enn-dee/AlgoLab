@@ -18,6 +18,7 @@ const curriculum = [
       "Pointers",
       "Structures",
       "File handling",
+      "Dijkstra's Algorithm",
     ],
   },
   {
@@ -396,6 +397,67 @@ const templateFor = (language, title) => {
   };
 };
 
+const dijkstraPracticalConfig = () => ({
+  description:
+    "Use Dijkstra's algorithm to find the shortest path distances from a source vertex in a weighted graph.",
+  instructions:
+    "Write a complete C program using the starter code below. The first line contains n and source. The next n lines contain the adjacency matrix representing the graph. Implement Dijkstra's algorithm and print the distance from the source to each vertex in the order A, B, C, ... . Use the starter only as a guide; write the actual solution in the marked section.",
+  starterTemplate: {
+    c: {
+      prefix: "",
+      starterSolution: `#include<stdio.h>
+#include<limits.h>
+#include<stdbool.h>
+
+void greedy_dijsktra(int graph[6][6], int src ){
+ // write your solution here
+}
+
+int main(){
+  int graph[6][6] = {
+     {0, 1, 2, 0, 0, 0},
+     {1, 0, 0, 5, 1, 0},
+     {2, 0, 0, 2, 3, 0},
+     {0, 5, 2, 0, 2, 2},
+     {0, 1, 3, 2, 0, 1},
+     {0, 0, 0, 2, 1, 0}
+  };
+  greedy_dijsktra(graph,0);
+  return 0;
+}`,
+      suffix: "",
+    },
+  },
+  testCases: [
+    {
+      input: `6 0
+0 1 2 0 0 0
+1 0 0 5 1 0
+2 0 0 2 3 0
+0 5 2 0 2 2
+0 1 3 2 0 1
+0 0 0 2 1 0`,
+      expected: [0, 1, 2, 4, 2, 3],
+      visibility: "public",
+      weight: 1,
+      checker: "dijkstra",
+    },
+
+    {
+      input: `5 0
+0 4 1 0 0
+4 0 2 1 0
+1 2 0 5 3
+0 1 5 0 2
+0 0 3 2 0`,
+      expected: [0, 3, 1, 4, 4],
+      visibility: "hidden",
+      weight: 1,
+      checker: "dijkstra",
+    },
+  ],
+});
+
 const seed = async () => {
   await connectDB();
   await Lab.deleteMany({
@@ -421,21 +483,40 @@ const seed = async () => {
         order: index + 1,
       });
       if (!existing) {
-        const instructions = getDetailedInstructions(item.language, title);
+        // Determine if this is the custom Dijkstra practical
+        const customPractical =
+          item.language === "c" && title === "Dijkstra's Algorithm"
+            ? dijkstraPracticalConfig()
+            : null;
 
+        // ── Build the practical fields based on custom or dev ──
+        let description, instructions, starterTemplate, testCases;
+
+        if (customPractical) {
+          // Use the custom config for Dijkstra
+          description = customPractical.description;
+          instructions = customPractical.instructions;
+          starterTemplate = customPractical.starterTemplate;
+          testCases = customPractical.testCases;
+        } else {
+          // Use the dev helpers for everything else
+          description = `Core ${item.name} exercise: ${title}.`;
+          instructions = getDetailedInstructions(item.language, title);
+          starterTemplate = {
+            [item.language]: templateFor(item.language, title),
+          };
+          testCases = getTestCasesForTopic(item.language, title);
+        }
+
+        // ── Create the practical ──
         await Practical.create({
           labId: lab._id,
           title: `${index + 1}. ${title}`,
-          description: `Core ${item.name} exercise: ${title}.`,
+          description,
           instructions,
           order: index + 1,
-          starterTemplate: {
-            [item.language]: templateFor(item.language, title),
-          },
-          // testCases: [
-          //   { input: "", expected: "", visibility: "public", weight: 1 },
-          // ],
-          testCases: getTestCasesForTopic(item.language, title),
+          starterTemplate,
+          testCases,
           execution: {
             enabled: true,
             allowedLanguages: [item.language],
@@ -446,8 +527,8 @@ const seed = async () => {
       }
     }
   }
-  console.log(
-    "Academic C, C++, and Java curricula seeded with detailed instructions.",
+    console.log(
+    "Academic C, C++, and Java curricula seeded with detailed instructions, plus Dijkstra's Algorithm custom practical.",
   );
   process.exit(0);
 };
