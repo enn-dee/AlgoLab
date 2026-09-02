@@ -3,8 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { apiFetch } from "@/utils/api";
 import { motion } from "motion/react";
 import {
-  BookOpen, Users, Clock, AlertCircle, Plus, ChevronRight,
-  GraduationCap, Layers, ArrowUpRight, Activity, Sparkles
+  BookOpen,
+  Users,
+  Clock,
+  AlertCircle,
+  Plus,
+  ChevronRight,
+  GraduationCap,
+  Layers,
+  ArrowUpRight,
+  Activity,
+  Sparkles,
 } from "lucide-react";
 import TeacherNavbar from "../components/layout/TeacherNavbar";
 
@@ -16,10 +25,14 @@ function StatCard({ title, value, icon, gradient }) {
     >
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs uppercase tracking-wider text-gray-500">{title}</p>
+          <p className="text-xs uppercase tracking-wider text-gray-500">
+            {title}
+          </p>
           <h2 className="text-3xl font-bold mt-2 text-white">{value}</h2>
         </div>
-        <div className="p-3 rounded-xl bg-white/5 border border-white/10">{icon}</div>
+        <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+          {icon}
+        </div>
       </div>
     </motion.div>
   );
@@ -31,7 +44,11 @@ export default function TeacherDashboard() {
   const [labs, setLabs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newLab, setNewLab] = useState({ name: "", subjectCode: "", session: "" });
+  const [newLab, setNewLab] = useState({
+    name: "",
+    subjectCode: "",
+    session: "",
+  });
 
   useEffect(() => {
     fetchData();
@@ -41,7 +58,7 @@ export default function TeacherDashboard() {
     try {
       const [statsRes, labsRes] = await Promise.all([
         apiFetch("reports/dashboard-stats"),
-        apiFetch("labs")
+        apiFetch("labs"),
       ]);
       const statsData = await statsRes.json();
       const labsData = await labsRes.json();
@@ -58,7 +75,7 @@ export default function TeacherDashboard() {
     try {
       const res = await apiFetch("labs", {
         method: "POST",
-        body: JSON.stringify(newLab)
+        body: JSON.stringify(newLab),
       });
       const data = await res.json();
       setLabs([...labs, data]);
@@ -69,26 +86,12 @@ export default function TeacherDashboard() {
     }
   };
 
-  const currentLabs = labs.filter(l => l.status === "current");
-  const previousLabs = labs.filter(l => l.status === "previous");
-
-//   if (loading) {
-//     return (
-//       <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-zinc-950">
-//         <TeacherNavbar />
-//         <div className="flex items-center justify-center py-24 text-gray-400">
-//           <div className="w-10 h-10 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
-//         </div>
-//       </div>
-//     );
-//   }
+  const currentLabs = labs.filter((l) => l.status === "current");
+  const previousLabs = labs.filter((l) => l.status === "previous");
 
   return (
     <>
-     {/* <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-zinc-950"> */}
-      {/* <TeacherNavbar /> */}
       <div className="p-4 md:p-6 max-w-full mx-auto flex flex-col gap-6">
-        
         {/* HEADER */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -96,27 +99,57 @@ export default function TeacherDashboard() {
           className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-purple-500/10 via-violet-500/5 to-fuchsia-500/10 backdrop-blur-2xl px-6 py-7"
         >
           <div className="absolute top-0 right-0 w-52 h-52 bg-purple-500/10 blur-3xl rounded-full" />
-          <div className="relative flex items-center justify-between gap-4">
+          <div className="relative flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white">Teacher Dashboard</h1>
-              <p className="text-sm text-gray-400 mt-2">Manage your labs, students, and evaluations</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-white">
+                Teacher Dashboard
+              </h1>
+              <p className="text-sm text-gray-400 mt-2">
+                Manage your labs, students, and evaluations
+              </p>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-medium transition-all shadow-lg shadow-purple-500/20"
-            >
-              <Plus size={18} />
-              New Lab
-            </button>
+            <div className="flex gap-3">
+              {/* 🔥 NEW: Manage Students button */}
+              <button
+                onClick={() => navigate("/teacher/students")}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/30 transition"
+              >
+                <Users size={18} />
+                Manage Students
+              </button>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-medium transition-all shadow-lg shadow-purple-500/20"
+              >
+                <Plus size={18} />
+                New Lab
+              </button>
+            </div>
           </div>
         </motion.div>
 
         {/* STATS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-          <StatCard title="Total Labs" value={stats?.totalLabs || 0} icon={<BookOpen size={22} className="text-purple-400" />} />
-          <StatCard title="Active Labs" value={stats?.currentLabs || 0} icon={<Activity size={22} className="text-emerald-400" />} />
-          <StatCard title="Students" value={stats?.totalStudents || 0} icon={<Users size={22} className="text-cyan-400" />} />
-          <StatCard title="Pending Eval" value={stats?.pendingEvaluations || 0} icon={<AlertCircle size={22} className="text-orange-400" />} />
+          <StatCard
+            title="Total Labs"
+            value={stats?.totalLabs || 0}
+            icon={<BookOpen size={22} className="text-purple-400" />}
+          />
+          <StatCard
+            title="Active Labs"
+            value={stats?.currentLabs || 0}
+            icon={<Activity size={22} className="text-emerald-400" />}
+          />
+          <StatCard
+            title="Students"
+            value={stats?.totalStudents || 0}
+            icon={<Users size={22} className="text-cyan-400" />}
+          />
+          <StatCard
+            title="Pending Eval"
+            value={stats?.pendingEvaluations || 0}
+            icon={<AlertCircle size={22} className="text-orange-400" />}
+          />
         </div>
 
         {/* CURRENT LABS */}
@@ -146,12 +179,21 @@ export default function TeacherDashboard() {
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.15),transparent_40%)]" />
                   <div className="relative">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-white">{lab.name}</h3>
-                      <ArrowUpRight size={18} className="text-emerald-400 opacity-0 group-hover:opacity-100 transition" />
+                      <h3 className="text-lg font-semibold text-white">
+                        {lab.name}
+                      </h3>
+                      <ArrowUpRight
+                        size={18}
+                        className="text-emerald-400 opacity-0 group-hover:opacity-100 transition"
+                      />
                     </div>
-                    <p className="text-sm text-gray-400 mt-1">{lab.subjectCode}</p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      {lab.subjectCode}
+                    </p>
                     <div className="flex items-center gap-4 mt-4 text-xs text-gray-500">
-                      <span className="flex items-center gap-1"><Users size={12} /> {lab.students?.length || 0} Students</span>
+                      <span className="flex items-center gap-1">
+                        <Users size={12} /> {lab.students?.length || 0} Students
+                      </span>
                       <span>{lab.session}</span>
                     </div>
                   </div>
@@ -179,8 +221,12 @@ export default function TeacherDashboard() {
                   onClick={() => navigate(`/teacher/lab/${lab._id}`)}
                   className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-5 cursor-pointer opacity-70 hover:opacity-100 transition"
                 >
-                  <h3 className="text-lg font-semibold text-white">{lab.name}</h3>
-                  <p className="text-sm text-gray-400 mt-1">{lab.subjectCode} — {lab.session}</p>
+                  <h3 className="text-lg font-semibold text-white">
+                    {lab.name}
+                  </h3>
+                  <p className="text-sm text-gray-400 mt-1">
+                    {lab.subjectCode} — {lab.session}
+                  </p>
                   <div className="flex items-center justify-end mt-3">
                     <ChevronRight size={16} className="text-gray-500" />
                   </div>
@@ -189,10 +235,9 @@ export default function TeacherDashboard() {
             </div>
           </div>
         )}
-
       </div>
 
-      {/* CREATE LAB MODAL */}
+      {/* CREATE LAB MODAL – unchanged */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <motion.div
@@ -200,7 +245,9 @@ export default function TeacherDashboard() {
             animate={{ opacity: 1, scale: 1 }}
             className="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-900 p-6 shadow-2xl"
           >
-            <h2 className="text-xl font-bold text-white mb-4">Create New Lab</h2>
+            <h2 className="text-xl font-bold text-white mb-4">
+              Create New Lab
+            </h2>
             <div className="flex flex-col gap-4">
               <input
                 type="text"
@@ -213,14 +260,18 @@ export default function TeacherDashboard() {
                 type="text"
                 placeholder="Subject Code"
                 value={newLab.subjectCode}
-                onChange={(e) => setNewLab({ ...newLab, subjectCode: e.target.value })}
+                onChange={(e) =>
+                  setNewLab({ ...newLab, subjectCode: e.target.value })
+                }
                 className="p-3 rounded-xl bg-black/30 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               <input
                 type="text"
                 placeholder="Session (e.g., 2025-26)"
                 value={newLab.session}
-                onChange={(e) => setNewLab({ ...newLab, session: e.target.value })}
+                onChange={(e) =>
+                  setNewLab({ ...newLab, session: e.target.value })
+                }
                 className="p-3 rounded-xl bg-black/30 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               <div className="flex gap-3 mt-2">
@@ -241,7 +292,6 @@ export default function TeacherDashboard() {
           </motion.div>
         </div>
       )}
-      </>
-    // </div>
+    </>
   );
 }

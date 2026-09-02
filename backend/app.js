@@ -19,6 +19,7 @@ import studentLabRoutes from "./routes/studentLab.js";
 import progressRoute from "./routes/progress.js";
 import adminLabRoutes from "./routes/adminLabs.js";
 import assignmentRoutes from "./routes/assignments.js";
+import teacherStudentsRoutes from "./routes/teacherStudents.js";
 
 import connectDB from "./config/db.js";
 import path from "path";
@@ -62,6 +63,7 @@ app.use("/api/marks", marksRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/student", studentLabRoutes);
+app.use("/api/teacher/students", teacherStudentsRoutes);
 
 app.get("/health", (req, res) => {
   return res.status(200).send("ok");

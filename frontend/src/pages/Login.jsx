@@ -23,8 +23,8 @@ export default function Login() {
         body: JSON.stringify({
           rollNumber: rollNumber.toUpperCase(),
           fullName: "",
-          password
-        })
+          password,
+        }),
       });
 
       const data = await res.json();
@@ -57,8 +57,12 @@ export default function Login() {
             <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-400/20 flex items-center justify-center">
               <GraduationCap size={28} className="text-emerald-400" />
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Welcome Back</h2>
-            <p className="text-sm text-gray-400">Login to continue your journey</p>
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+              Welcome Back
+            </h2>
+            <p className="text-sm text-gray-400">
+              Login to continue your journey
+            </p>
           </div>
 
           <div className="flex flex-col gap-4">
@@ -103,18 +107,17 @@ export default function Login() {
               {loading ? "Signing in..." : "Login"}
             </button>
 
-            <p className="text-sm text-center text-gray-400 mt-2">
-              Don't have an account?{" "}
-              <span
-                className="text-emerald-400 cursor-pointer hover:underline"
-                onClick={() => (window.location.href = "/register")}
-              >
-                Register
-              </span>
-            </p>
+            <div className="mt-4 p-3 rounded-xl bg-cyan-500/10 border border-cyan-400/20 text-cyan-300 text-sm text-center">
+              <p>Accounts are created by your teacher.</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Use your roll number and DOB (DDMMYYYY) to log in.
+              </p>
+            </div>
 
             <div className="border-t border-white/10 pt-4 mt-2">
-              <p className="text-xs text-center text-gray-500 mb-3">Are you a teacher?</p>
+              <p className="text-xs text-center text-gray-500 mb-3">
+                Are you a teacher?
+              </p>
               <button
                 onClick={() => (window.location.href = "/teacher/login")}
                 className="w-full py-2 rounded-xl border border-purple-400/20 bg-purple-500/10 text-purple-300 text-sm hover:bg-purple-500/20 transition"

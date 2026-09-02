@@ -1,4 +1,10 @@
-import { useLocation, useNavigate, Route, Routes } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+  Route,
+  Routes,
+  Navigate,
+} from "react-router-dom";
 import Navbar from "./components/layout/Navbar";
 import TeacherNavbar from "./components/layout/TeacherNavbar";
 import { Toaster } from "react-hot-toast";
@@ -15,6 +21,8 @@ import AlgoDashboard from "./components/layout/AlgoDashboard";
 import AlgoWorkspace from "./components/layout/AlgoWorkspace";
 import ProtectedRoute from "./utils/ProtectedRoute";
 import TeacherRoute from "./utils/TeacherRoute";
+import TeacherStudents from "./pages/TeacherStudents";
+
 import { useEffect, useState } from "react";
 
 export default function App() {
@@ -28,19 +36,28 @@ export default function App() {
 
   useEffect(() => {
     if (!role) return;
-    if (role === "teacher" && location.pathname === "/") navigate("/teacher/dashboard");
-    if (role === "student" && location.pathname === "/") navigate("/student/dashboard");
+    if (role === "teacher" && location.pathname === "/")
+      navigate("/teacher/dashboard");
+    if (role === "student" && location.pathname === "/")
+      navigate("/student/dashboard");
   }, [role, location.pathname]);
 
   const isLanding = location.pathname === "/";
   const isTeacherRoute = location.pathname.startsWith("/teacher");
-  const isStudentRoute = location.pathname.startsWith("/student") || location.pathname.startsWith("/algo");
-  const isAuthPage = ["/login", "/register", "/teacher/login", "/teacher/register"].includes(location.pathname);
+  const isStudentRoute =
+    location.pathname.startsWith("/student") ||
+    location.pathname.startsWith("/algo");
+  const isAuthPage = [
+    "/login",
+    "/register",
+    "/teacher/login",
+    "/teacher/register",
+  ].includes(location.pathname);
 
   const getNavbar = () => {
     if (isAuthPage || isLanding) return null;
     if (isTeacherRoute) return <TeacherNavbar />;
-    if (isStudentRoute) return null; 
+    if (isStudentRoute) return null;
     return <Navbar />;
   };
 
@@ -49,15 +66,29 @@ export default function App() {
       <Toaster position="top-center" />
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-zinc-900 to-zinc-950 text-white">
         {getNavbar()}
-        {!isStudentRoute && <div className="sticky top-0 z-40 backdrop-blur-md bg-white/5 border-b border-white/10" />}
+        {!isStudentRoute && (
+          <div className="sticky top-0 z-40 backdrop-blur-md bg-white/5 border-b border-white/10" />
+        )}
 
-        <div className={`flex-1 ${isLanding ? "" : !isStudentRoute ? "px-4 md:px-8 py-6" : ""}`}>
-          <div className={isLanding || isStudentRoute ? "" : "max-w-full mx-auto bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6 shadow-xl backdrop-blur-md"}>
+        <div
+          className={`flex-1 ${isLanding ? "" : !isStudentRoute ? "px-4 md:px-8 py-6" : ""}`}
+        >
+          <div
+            className={
+              isLanding || isStudentRoute
+                ? ""
+                : "max-w-full mx-auto bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6 shadow-xl backdrop-blur-md"
+            }
+          >
             <Routes>
               {/* PUBLIC */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+              {/* <Route path="/register" element={<Register />} /> */}
+              <Route
+                path="/register"
+                element={<Navigate to="/login" replace />}
+              />
 
               {/* TEACHER AUTH */}
               <Route path="/teacher/login" element={<TeacherLogin />} />
@@ -65,14 +96,34 @@ export default function App() {
 
               {/* TEACHER PROTECTED */}
               <Route element={<TeacherRoute />}>
-                <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-                <Route path="/teacher/lab/:labId" element={<TeacherLabDetail />} />
+                <Route
+                  path="/teacher/dashboard"
+                  element={<TeacherDashboard />}
+                />
+                <Route
+                  path="/teacher/lab/:labId"
+                  element={<TeacherLabDetail />}
+                />
+                <Route path="/teacher/students" element={<TeacherStudents />} />
               </Route>
 
               {/* STUDENT - */}
-              <Route element={<ProtectedRoute allowedRoles={["student"]} withLayout={true} />}>
-                <Route path="/student/dashboard" element={<StudentDashboard />} />
-                <Route path="/student/lab/:labId" element={<StudentLabDetail />} />
+              <Route
+                element={
+                  <ProtectedRoute
+                    allowedRoles={["student"]}
+                    withLayout={true}
+                  />
+                }
+              >
+                <Route
+                  path="/student/dashboard"
+                  element={<StudentDashboard />}
+                />
+                <Route
+                  path="/student/lab/:labId"
+                  element={<StudentLabDetail />}
+                />
                 <Route path="/algo-dashboard" element={<AlgoDashboard />} />
                 <Route path="/algo/:id" element={<AlgoWorkspace />} />
               </Route>
