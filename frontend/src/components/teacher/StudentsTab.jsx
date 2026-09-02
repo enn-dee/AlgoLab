@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { apiFetch } from "@/utils/api";
 import { motion } from "motion/react";
 import toast from "react-hot-toast";
@@ -19,8 +19,9 @@ export default function StudentsTab({ lab, onUpdate }) {
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [rollNumber, setRollNumber] = useState("");
-  // Batch filter (e.g. "2022"). "All" means no batch filtering.
   const [batchFilter, setBatchFilter] = useState("All");
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
 
   const [loading, setLoading] = useState({
     enrolled: false,
@@ -38,184 +39,112 @@ export default function StudentsTab({ lab, onUpdate }) {
   }, [lab]);
 
   const fetchEnrolledStudents = async () => {
-    setLoading((prev) => ({
-      ...prev,
-      enrolled: true,
-    }));
-
+    setLoading((prev) => ({ ...prev, enrolled: true }));
     try {
       const res = await apiFetch(`lab-students/${lab._id}`);
       const data = await res.json();
-
       setEnrolledStudents(data);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load enrolled students");
     } finally {
-      setLoading((prev) => ({
-        ...prev,
-        enrolled: false,
-      }));
+      setLoading((prev) => ({ ...prev, enrolled: false }));
     }
   };
 
   const fetchAllStudents = async () => {
-    setLoading((prev) => ({
-      ...prev,
-      students: true,
-    }));
-
+    setLoading((prev) => ({ ...prev, students: true }));
     try {
       const res = await apiFetch("auth/all-students");
       const data = await res.json();
-
       setAllStudents(data || []);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load students");
     } finally {
-      setLoading((prev) => ({
-        ...prev,
-        students: false,
-      }));
+      setLoading((prev) => ({ ...prev, students: false }));
     }
   };
 
   const handleAdd = async () => {
-    if (!rollNumber.trim()) {
-      return toast.error("Enter a roll number");
-    }
-
-    setLoading((prev) => ({
-      ...prev,
-      adding: true,
-    }));
-
+    if (!rollNumber.trim()) return toast.error("Enter a roll number");
+    setLoading((prev) => ({ ...prev, adding: true }));
     try {
       const res = await apiFetch(`lab-students/${lab._id}/enroll`, {
         method: "POST",
-        body: JSON.stringify({
-          rollNumber: rollNumber.trim(),
-        }),
+        body: JSON.stringify({ rollNumber: rollNumber.trim() }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
+      if (!res.ok)
         throw new Error(data.msg || data.error || "Failed to add student");
-      }
-
       toast.success(data.msg || "Student added");
-
       setRollNumber("");
-
       fetchEnrolledStudents();
       onUpdate();
     } catch (err) {
       toast.error(err.message);
     } finally {
-      setLoading((prev) => ({
-        ...prev,
-        adding: false,
-      }));
+      setLoading((prev) => ({ ...prev, adding: false }));
     }
   };
 
   const handleQuickAdd = async (roll) => {
-    setLoading((prev) => ({
-      ...prev,
-      quickAdding: roll,
-    }));
-
+    setLoading((prev) => ({ ...prev, quickAdding: roll }));
     try {
       const res = await apiFetch(`lab-students/${lab._id}/enroll`, {
         method: "POST",
-        body: JSON.stringify({
-          rollNumber: roll,
-        }),
+        body: JSON.stringify({ rollNumber: roll }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
+      if (!res.ok)
         throw new Error(data.msg || data.error || "Failed to add student");
-      }
-
       toast.success(`${roll} added`);
-
       fetchEnrolledStudents();
       onUpdate();
     } catch (err) {
       toast.error(err.message);
     } finally {
-      setLoading((prev) => ({
-        ...prev,
-        quickAdding: null,
-      }));
+      setLoading((prev) => ({ ...prev, quickAdding: null }));
     }
   };
+
   const handleEnrollAll = async () => {
-    if (availableStudents.length === 0) {
+    if (availableStudents.length === 0)
       return toast.error("No students available to enroll");
-    }
-
     const rollNumbers = availableStudents.map((s) => s.rollNumber);
-
-    setLoading((prev) => ({
-      ...prev,
-      enrollingAll: true,
-    }));
-
+    setLoading((prev) => ({ ...prev, enrollingAll: true }));
     try {
       const res = await apiFetch(`lab-students/${lab._id}/bulk-enroll`, {
         method: "POST",
         body: JSON.stringify({ rollNumbers }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
+      if (!res.ok)
         throw new Error(data.msg || data.error || "Failed to enroll");
-      }
-
       toast.success(`${data.enrolled || 0} students enrolled`);
-
       fetchEnrolledStudents();
       onUpdate();
     } catch (err) {
       toast.error(err.message);
     } finally {
-      setLoading((prev) => ({
-        ...prev,
-        enrollingAll: false,
-      }));
+      setLoading((prev) => ({ ...prev, enrollingAll: false }));
     }
   };
 
   const handleRemove = async (studentId) => {
     if (!confirm("Remove this student?")) return;
-
-    setLoading((prev) => ({
-      ...prev,
-      removing: studentId,
-    }));
-
+    setLoading((prev) => ({ ...prev, removing: studentId }));
     try {
       await apiFetch(`lab-students/${lab._id}/remove/${studentId}`, {
         method: "DELETE",
-      }).then(() => {
-        toast.success("Student removed");
       });
-
+      toast.success("Student removed");
       fetchEnrolledStudents();
       onUpdate();
     } catch (err) {
       toast.error(`Failed to remove ${err.message}`);
     } finally {
-      setLoading((prev) => ({
-        ...prev,
-        removing: null,
-      }));
+      setLoading((prev) => ({ ...prev, removing: null }));
     }
   };
 
@@ -224,45 +153,68 @@ export default function StudentsTab({ lab, onUpdate }) {
       !confirm(`Remove ALL ${enrolledStudents.length} students from this lab?`)
     )
       return;
-
-    setLoading((prev) => ({
-      ...prev,
-      removingAll: true,
-    }));
-
+    setLoading((prev) => ({ ...prev, removingAll: true }));
     try {
       for (const student of enrolledStudents) {
         await apiFetch(`lab-students/${lab._id}/remove/${student._id}`, {
           method: "DELETE",
         });
       }
-
       toast.success("All students removed");
-
       fetchEnrolledStudents();
       onUpdate();
     } catch (err) {
       console.error(err);
       toast.error("Failed to remove all students");
     } finally {
-      setLoading((prev) => ({
-        ...prev,
-        removingAll: false,
-      }));
+      setLoading((prev) => ({ ...prev, removingAll: false }));
     }
   };
 
+  // ─── CSV IMPORT ────────────────────────────────────────────────────────
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await apiFetch(`lab-students/${lab._id}/import-csv`, {
+        method: "POST",
+        body: formData,
+        // Do NOT set Content-Type header – fetch will add boundary
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Import failed");
+
+      toast.success(`Imported ${data.enrolled} students successfully`);
+      if (data.errors && data.errors.length) {
+        toast.error(`${data.errors.length} errors occurred (check console)`);
+        console.warn(data.errors);
+      }
+      fetchEnrolledStudents();
+      onUpdate();
+    } catch (err) {
+      toast.error(err.message || "Failed to import CSV");
+    } finally {
+      setImporting(false);
+      e.target.value = ""; // reset input
+    }
+  };
+
+  // ─── FILTERING LOGIC ──────────────────────────────────────────────────
   const filteredEnrolled = enrolledStudents.filter(
     (s) =>
       (s.fullName || "").toLowerCase().includes(search.toLowerCase()) ||
-      (s.rollNumber || "").toLowerCase().includes(search.toLowerCase())
+      (s.rollNumber || "").toLowerCase().includes(search.toLowerCase()),
   );
 
   const enrolledRolls = new Set(
-    enrolledStudents.map((s) => s.rollNumber?.toUpperCase())
+    enrolledStudents.map((s) => s.rollNumber?.toUpperCase()),
   );
 
-  // Compute available batches from all students (first two digits -> 20xx)
   const batchesSet = new Set();
   allStudents.forEach((s) => {
     const rn = s.rollNumber || "";
@@ -274,9 +226,7 @@ export default function StudentsTab({ lab, onUpdate }) {
   const availableStudents = allStudents.filter((s) => {
     const roll = s.rollNumber || "";
     const rollUpper = roll.toUpperCase();
-    // exclude already enrolled
     if (enrolledRolls.has(rollUpper)) return false;
-    // if no batch filter selected, include
     if (batchFilter === "All") return true;
     const m = roll.match(/^(\d{2})/);
     if (!m) return false;
@@ -284,6 +234,7 @@ export default function StudentsTab({ lab, onUpdate }) {
     return batch === batchFilter;
   });
 
+  // ─── RENDER ──────────────────────────────────────────────────────────
   return (
     <div className="space-y-5">
       {/* HEADER */}
@@ -299,6 +250,23 @@ export default function StudentsTab({ lab, onUpdate }) {
         </div>
 
         <div className="flex gap-2">
+          {/* ─── IMPORT CSV BUTTON ─── */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/30 transition text-sm disabled:opacity-50"
+          >
+            <Upload size={15} />
+            {importing ? "Importing..." : "Import CSV"}
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".csv"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
+
           {enrolledStudents.length > 0 && (
             <button
               onClick={handleRemoveAll}
@@ -320,29 +288,17 @@ export default function StudentsTab({ lab, onUpdate }) {
         </div>
       </div>
 
-      {/* ADD STUDENTS PANEL */}
+      {/* ADD STUDENTS PANEL – unchanged except for new import button (already above) */}
       {showAdd && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
-          animate={{
-            opacity: 1,
-            height: "auto",
-          }}
+          animate={{ opacity: 1, height: "auto" }}
           className="rounded-2xl border border-white/10 bg-black/20 p-5 space-y-5"
         >
           <div className="flex items-center justify-between">
             <h3 className="text-white font-semibold">
               Add Students to {lab.name}
             </h3>
-
-            {/* <button
-              onClick={() => setShowAdd(false)}
-            >
-              <X
-                size={18}
-                className="text-gray-400"
-              />
-            </button> */}
           </div>
 
           <div className="flex gap-3 items-end">
@@ -350,7 +306,6 @@ export default function StudentsTab({ lab, onUpdate }) {
               <label className="text-xs text-gray-500 mb-1 block">
                 Enter Roll Number
               </label>
-
               <input
                 type="text"
                 value={rollNumber}
@@ -359,12 +314,10 @@ export default function StudentsTab({ lab, onUpdate }) {
                 className="w-full p-2.5 rounded-xl bg-black/30 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
-
             <div className="w-48">
               <label className="text-xs text-gray-500 mb-1 block">
                 Filter by Batch
               </label>
-
               <select
                 value={batchFilter}
                 onChange={(e) => setBatchFilter(e.target.value)}
@@ -378,7 +331,6 @@ export default function StudentsTab({ lab, onUpdate }) {
                 ))}
               </select>
             </div>
-
             <button
               onClick={handleAdd}
               disabled={loading.adding}
@@ -387,6 +339,7 @@ export default function StudentsTab({ lab, onUpdate }) {
               {loading.adding ? "Adding..." : "Add"}
             </button>
           </div>
+
           {availableStudents.length > 0 && (
             <div className="border-t border-white/10 pt-4">
               <button
@@ -402,7 +355,7 @@ export default function StudentsTab({ lab, onUpdate }) {
                 ) : (
                   <>
                     <UserCheck size={18} />
-                    Enroll All Available Students({
+                    Enroll All Available Students ({
                       availableStudents.length
                     }) {batchFilter != "All" ? `Of Batch ${batchFilter}` : ""}
                   </>
@@ -415,7 +368,6 @@ export default function StudentsTab({ lab, onUpdate }) {
             <label className="text-xs text-gray-500 mb-3 block">
               Available Students ({availableStudents.length} not enrolled)
             </label>
-
             {loading.students ? (
               <div className="text-center py-6 text-gray-500 text-sm">
                 Loading students...
@@ -435,7 +387,6 @@ export default function StudentsTab({ lab, onUpdate }) {
                       <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-400/20 flex items-center justify-center text-purple-400 text-xs font-medium">
                         {student.fullName?.charAt(0)?.toUpperCase()}
                       </div>
-
                       <div>
                         <p className="text-white text-sm font-medium">
                           {student.fullName}
@@ -445,7 +396,6 @@ export default function StudentsTab({ lab, onUpdate }) {
                         </p>
                       </div>
                     </div>
-
                     <button
                       onClick={() => handleQuickAdd(student.rollNumber)}
                       disabled={loading.quickAdding === student.rollNumber}
@@ -455,8 +405,7 @@ export default function StudentsTab({ lab, onUpdate }) {
                         "Adding..."
                       ) : (
                         <>
-                          <Plus size={12} />
-                          Add
+                          <Plus size={12} /> Add
                         </>
                       )}
                     </button>
@@ -471,7 +420,6 @@ export default function StudentsTab({ lab, onUpdate }) {
       {/* SEARCH */}
       <div className="relative max-w-md">
         <Search size={16} className="absolute left-3 top-3 text-gray-500" />
-
         <input
           type="text"
           placeholder="Search enrolled students..."
@@ -481,7 +429,7 @@ export default function StudentsTab({ lab, onUpdate }) {
         />
       </div>
 
-      {/* ENROLLED STUDENTS */}
+      {/* ENROLLED STUDENTS LIST */}
       <div className="flex flex-col gap-2">
         {loading.enrolled ? (
           <div className="text-center py-12 text-gray-500">
@@ -506,13 +454,11 @@ export default function StudentsTab({ lab, onUpdate }) {
                 <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-400/20 flex items-center justify-center text-purple-400 text-sm font-semibold">
                   {student.fullName?.charAt(0)?.toUpperCase()}
                 </div>
-
                 <div>
                   <p className="text-white font-medium">{student.fullName}</p>
                   <p className="text-sm text-gray-400">{student.rollNumber}</p>
                 </div>
               </div>
-
               <button
                 onClick={() => handleRemove(student._id)}
                 disabled={loading.removing === student._id}

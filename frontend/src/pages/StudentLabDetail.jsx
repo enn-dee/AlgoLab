@@ -50,6 +50,12 @@ export default function StudentLabDetail() {
   const [runResults, setRunResults] = useState([]);
   const [runOutput, setRunOutput] = useState(null);
 
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [instructionsContent, setInstructionsContent] = useState("");
+  const [customStdin, setCustomStdin] = useState("");
+  const [editorPrefix, setEditorPrefix] = useState("");
+  const [editorSuffix, setEditorSuffix] = useState("");
+
   const isMounted = useRef(true);
   const abortControllerRef = useRef(null);
 
@@ -161,28 +167,22 @@ export default function StudentLabDetail() {
     setEditorPractical(practical);
     setShowEditor(true);
     setRunResults([]);
+    setRunOutput(null);
+    setCustomStdin("");
+
     const initialLanguage =
       practical.execution?.allowedLanguages?.[0] || "python";
     setLanguage(initialLanguage);
 
-    try {
-      const res = await apiFetch(`submissions/my/${practical._id}`);
-      const data = await res.json();
-      if (data?.submission?.code) {
-        setCode(data.submission.code);
-      } else {
-        setCode(
-          practical.starterTemplate?.[initialLanguage]?.starterSolution ||
-            practical.starterCode ||
-            "# Write your solution here\n\ndef solution(input):\n    # Your code here\n    pass\n",
-        );
-      }
-    } catch {
-      setCode(
-        practical.starterTemplate?.[initialLanguage]?.starterSolution ||
-          practical.starterCode ||
-          "# Write your solution here\n\ndef solution(input):\n    # Your code here\n    pass\n",
-      );
+    const template = practical.starterTemplate?.[initialLanguage];
+    if (template) {
+      setEditorPrefix(template.prefix || "");
+      setEditorSuffix(template.suffix || "");
+      setCode(template.starterSolution || "");
+    } else {
+      setEditorPrefix("");
+      setEditorSuffix("");
+      setCode(practical.starterCode || "# Write your solution here\n");
     }
   }, []);
 
@@ -198,32 +198,40 @@ export default function StudentLabDetail() {
     setRunResults([]);
 
     try {
+      const payload = { solutionCode: code, language };
+      if (customStdin.trim()) {
+        payload.customStdin = customStdin.trim();
+      }
+
       const response = await apiFetch(
         `submissions/${editorPractical._id}/run`,
         {
           method: "POST",
-          body: JSON.stringify({
-            solutionCode: code,
-            language,
-          }),
+          body: JSON.stringify(payload),
         },
       );
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Code execution failed");
 
-      if (!response.ok) {
-        throw new Error(data.error || "Code execution failed");
+      // Custom input response
+      if (data.mode === "custom") {
+        setRunOutput({
+          stdout: data.output.stdout || "",
+          stderr: data.output.stderr || "",
+        });
+        if (data.output.stdout) toast.success("Execution completed");
+        if (data.output.stderr) toast.error("Execution completed with errors");
+        return;
       }
 
+      // Public tests response
       const results = data.results || [];
       setRunResults(results);
-
       const passed = results.filter((r) => r.passed).length;
       const total = results.length;
-
       if (total === 0) {
         setRunOutput({ stdout: "No public test cases found.", stderr: "" });
-        toast.info("No tests to run");
       } else if (passed === total) {
         setRunOutput({
           stdout: `✅ All ${total} public tests passed!`,
@@ -233,9 +241,8 @@ export default function StudentLabDetail() {
       } else {
         setRunOutput({
           stdout: `⚠️ ${passed}/${total} public tests passed.`,
-          stderr: `${total - passed} test(s) failed.`,
         });
-        toast.warning(`${passed}/${total} tests passed`);
+        toast.error(`${passed}/${total} tests passed`);
       }
     } catch (error) {
       setRunOutput({ stdout: "", stderr: error.message });
@@ -243,7 +250,7 @@ export default function StudentLabDetail() {
     } finally {
       setRunning(false);
     }
-  }, [editorPractical, code, language]);
+  }, [editorPractical, code, language, customStdin]);
 
   const handleSubmitCode = useCallback(async () => {
     if (!editorPractical) return;
@@ -566,15 +573,8 @@ export default function StudentLabDetail() {
                         {p.instructions && (
                           <button
                             onClick={() => {
-                              toast(p.instructions, {
-                                duration: 6000,
-                                icon: "📋",
-                                style: {
-                                  background: "#1a1a2e",
-                                  color: "#fff",
-                                  border: "1px solid rgba(255,255,255,0.1)",
-                                },
-                              });
+                              setInstructionsContent(p.instructions);
+                              setShowInstructions(true);
                             }}
                             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 text-sm hover:bg-white/10 transition"
                           >
@@ -723,20 +723,16 @@ export default function StudentLabDetail() {
             animate={{ opacity: 1, scale: 1 }}
             className="w-full max-w-5xl h-[85vh] rounded-2xl border border-white/10 bg-[#0a0a0a] shadow-2xl flex flex-col overflow-hidden"
           >
-            <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 bg-white/5 shrink-0">
-              <div>
-                <h3 className="text-lg font-semibold text-white">
-                  {editorPractical?.title}
-                </h3>
-                <p className="text-xs text-gray-400">
-                  {editorPractical?.description || "Write your solution"}
-                </p>
-                {editorPractical?.starterTemplate?.[language] && (
-                  <p className="mt-1 text-xs text-cyan-300">
-                    Only the solution area is editable; setup and output code
-                    are protected.
+            <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 bg-white/5 shrink-0 flex-wrap gap-2">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">
+                    {editorPractical?.title}
+                  </h3>
+                  <p className="text-xs text-gray-400">
+                    {editorPractical?.description || "Write your solution"}
                   </p>
-                )}
+                </div>
                 <select
                   value={language}
                   onChange={(e) => {
@@ -757,6 +753,13 @@ export default function StudentLabDetail() {
                     </option>
                   ))}
                 </select>
+                <input
+                  type="text"
+                  placeholder="Custom stdin (optional)"
+                  value={customStdin}
+                  onChange={(e) => setCustomStdin(e.target.value)}
+                  className="min-w-[120px] flex-1 rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                />
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -802,19 +805,48 @@ export default function StudentLabDetail() {
 
             {/* Editor + Output Panel */}
             <div className="flex-1 flex flex-col min-h-0">
+              {/* Prefix - read-only */}
+              {editorPrefix && (
+                <div className="shrink-0 border-b border-white/10">
+                  <Editor
+                    height={`${Math.max(40, editorPrefix.split("\n").length * 18 + 20)}px`}
+                    theme="vs-dark"
+                    language={language === "cpp" ? "cpp" : language}
+                    value={editorPrefix}
+                    options={{
+                      readOnly: true,
+                      domReadOnly: true,
+                      contextmenu: false,
+                      dragAndDrop: false,
+                      selectionHighlight: false,
+                      fontSize: 14,
+                      minimap: { enabled: false },
+                      padding: { top: 8, bottom: 8 },
+                      scrollBeyondLastLine: false,
+                      lineNumbers: "off",
+                      glyphMargin: false,
+                      folding: false,
+                      wordWrap: "on",
+                      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                    }}
+                    onMount={handleEditorMount}
+                  />
+                </div>
+              )}
+
+              {/* Editable code */}
               <div className="flex-1 min-h-0">
                 <Editor
-                  onMount={handleEditorMount}
                   height="100%"
                   theme="vs-dark"
                   language={language === "cpp" ? "cpp" : language}
                   value={code}
                   onChange={(value) => setCode(value || "")}
+                  onMount={handleEditorMount}
                   options={{
                     fontSize: 14,
                     minimap: { enabled: false },
-                    smoothScrolling: true,
-                    padding: { top: 16 },
+                    padding: { top: 8, bottom: 8 },
                     scrollBeyondLastLine: false,
                     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                     lineNumbers: "on",
@@ -824,22 +856,32 @@ export default function StudentLabDetail() {
                 />
               </div>
 
-              {/* Output summary */}
-              {runOutput && (
-                <div className="border-t border-white/10 bg-black/40 p-3 max-h-40 overflow-y-auto text-xs font-mono flex-shrink-0">
-                  {runOutput.stdout && (
-                    <pre className="text-emerald-300 whitespace-pre-wrap">
-                      {runOutput.stdout}
-                    </pre>
-                  )}
-                  {runOutput.stderr && (
-                    <pre className="text-red-400 whitespace-pre-wrap">
-                      {runOutput.stderr}
-                    </pre>
-                  )}
-                  {!runOutput.stdout && !runOutput.stderr && (
-                    <p className="text-gray-500">(No output)</p>
-                  )}
+              {/* Suffix - read-only */}
+              {editorSuffix && (
+                <div className="shrink-0 border-t border-white/10">
+                  <Editor
+                    height={`${Math.max(40, editorSuffix.split("\n").length * 18 + 20)}px`}
+                    theme="vs-dark"
+                    language={language === "cpp" ? "cpp" : language}
+                    value={editorSuffix}
+                    options={{
+                      readOnly: true,
+                      domReadOnly: true,
+                      contextmenu: false,
+                      dragAndDrop: false,
+                      selectionHighlight: false,
+                      fontSize: 14,
+                      minimap: { enabled: false },
+                      padding: { top: 8, bottom: 8 },
+                      scrollBeyondLastLine: false,
+                      lineNumbers: "off",
+                      glyphMargin: false,
+                      folding: false,
+                      wordWrap: "on",
+                      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                    }}
+                    onMount={handleEditorMount}
+                  />
                 </div>
               )}
             </div>
@@ -867,17 +909,60 @@ export default function StudentLabDetail() {
                       >
                         Test {index + 1}: {result.passed ? "Passed" : "Failed"}
                       </span>
-                      {!result.hidden && !result.passed && (
+                      {/* {!result.hidden && !result.passed && (
                         <p className="mt-1 text-gray-400">
                           Expected: {String(result.expected ?? "")} · Actual:{" "}
                           {result.actualOutput || "(no output)"}
                         </p>
-                      )}
+                      )} */}
                     </div>
                   ))}
                 </div>
               </div>
             )}
+          </motion.div>
+        </div>
+      )}
+      {/* ─── INSTRUCTIONS MODAL ─── */}
+      {showInstructions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-2xl max-h-[80vh] rounded-2xl border border-white/10 bg-[#0a0a0a] shadow-2xl flex flex-col overflow-hidden"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-white/5 shrink-0">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Eye size={18} className="text-cyan-400" />
+                Instructions
+              </h3>
+              <button
+                onClick={() => setShowInstructions(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="prose prose-invert prose-sm max-w-none">
+                <pre className="whitespace-pre-wrap text-gray-300 leading-relaxed font-sans text-sm">
+                  {instructionsContent}
+                </pre>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3 border-t border-white/10 bg-white/5 shrink-0 flex justify-end">
+              <button
+                onClick={() => setShowInstructions(false)}
+                className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white font-medium text-sm transition"
+              >
+                Got it
+              </button>
+            </div>
           </motion.div>
         </div>
       )}
