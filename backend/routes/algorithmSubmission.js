@@ -22,7 +22,7 @@ router.get("/user/all", authMiddleware, async (req, res) => {
 // GET saved code for an algorithm
 router.get("/:slug", authMiddleware, async (req, res) => {
   try {
-    console.log("Fetching submission for:", req.params.slug, "User:", req.user.id);
+    // console.log("Fetching submission for:", req.params.slug, "User:", req.user.id);
     const submission = await AlgorithmSubmission.findOne({
       userId: req.user.id,
       algorithmSlug: req.params.slug,
@@ -41,7 +41,11 @@ router.get("/:slug", authMiddleware, async (req, res) => {
 router.post("/save", authMiddleware, async (req, res) => {
   try {
     const { algorithmSlug, code, language, passed } = req.body;
-    console.log("Saving submission:", { algorithmSlug, userId: req.user.id, passed });
+    // console.log("Saving submission:", {
+    //   algorithmSlug,
+    //   userId: req.user.id,
+    //   passed,
+    // });
 
     const submission = await AlgorithmSubmission.findOneAndUpdate(
       {
@@ -54,10 +58,10 @@ router.post("/save", authMiddleware, async (req, res) => {
         passed: passed || false,
         ...(passed && { completedAt: new Date() }),
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
-    console.log("Saved submission:", submission._id);
+    // console.log("Saved submission:", submission._id);
     res.json({
       success: true,
       submission,
@@ -72,7 +76,8 @@ router.post("/save", authMiddleware, async (req, res) => {
 router.delete("/reset/:slug", authMiddleware, async (req, res) => {
   try {
     const algorithm = await Algorithm.findOne({ slug: req.params.slug });
-    const defaultCode = algorithm?.problem?.starterCode?.python ||
+    const defaultCode =
+      algorithm?.problem?.starterCode?.python ||
       `def solution():\n    # Write your code here\n    pass`;
 
     const submission = await AlgorithmSubmission.findOneAndUpdate(
@@ -85,7 +90,7 @@ router.delete("/reset/:slug", authMiddleware, async (req, res) => {
         passed: false,
         completedAt: null,
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     res.json({

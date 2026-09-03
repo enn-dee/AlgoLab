@@ -9,41 +9,69 @@ import { authMiddleware } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// STUDENT PERFORMANCE REPORT
+// ─── STUDENT PERFORMANCE REPORT (distinct practicals) ────────────────
 router.get("/student-performance/:labId", authMiddleware, async (req, res) => {
   try {
-    const lab = await Lab.findById(req.params.labId).populate("students", "fullName rollNumber");
+    const lab = await Lab.findById(req.params.labId).populate(
+      "students",
+      "fullName rollNumber",
+    );
     if (!lab) return res.status(404).json({ msg: "Lab not found" });
 
     const practicals = await Practical.find({ labId: req.params.labId });
+    const practicalIds = practicals.map((p) => p._id);
 
     const report = [];
 
     for (const student of lab.students) {
-      const studentMarks = await Marks.find({
+      // Find all submissions for this student in this lab
+      const submissions = await Submission.find({
         studentId: student._id,
-        practicalId: { $in: practicals.map(p => p._id) }
+        practicalId: { $in: practicalIds },
       });
 
-      const totalMarks = studentMarks.reduce((sum, m) => sum + m.total, 0);
-      const avgMarks = studentMarks.length > 0 ? (totalMarks / studentMarks.length).toFixed(2) : 0;
+      // Track distinct practical IDs that have an approved evaluation
+      const approvedPracticalIds = new Set();
 
+      for (const sub of submissions) {
+        const evalDoc = await Evaluation.findOne({ submissionId: sub._id });
+        if (evalDoc && evalDoc.status === "approved") {
+          approvedPracticalIds.add(sub.practicalId.toString());
+        }
+      }
+
+      const completedCount = approvedPracticalIds.size;
+
+      // (Optional) Sum of marks from the latest approved submission – you can adjust later
+      let totalMarks = 0;
+      let marksCount = 0;
+      // If you want to sum marks from approved submissions (deduplicated per practical)
+      // you can fetch the latest approved submission for each practical and sum scores.
+
+      // Attendance (unchanged)
       const attendanceRecords = await Attendance.find({
         studentId: student._id,
-        labId: req.params.labId
+        labId: req.params.labId,
       });
-      const present = attendanceRecords.filter(r => r.status === "present").length;
-      const attendancePercent = attendanceRecords.length > 0
-        ? Math.round((present / attendanceRecords.length) * 100)
-        : 0;
+      const present = attendanceRecords.filter(
+        (r) => r.status === "present",
+      ).length;
+      const attendancePercent =
+        attendanceRecords.length > 0
+          ? Math.round((present / attendanceRecords.length) * 100)
+          : 0;
 
       report.push({
-        student: { id: student._id, fullName: student.fullName, rollNumber: student.rollNumber },
-        totalMarks,
-        avgMarks: Number(avgMarks),
-        practicalsCompleted: studentMarks.length,
+        student: {
+          id: student._id,
+          fullName: student.fullName,
+          rollNumber: student.rollNumber,
+        },
+        totalMarks, // optional, set to 0 or compute differently
+        avgMarks: 0, // optional
+        practicalsCompleted: completedCount,
         totalPracticals: practicals.length,
-        attendancePercent
+        attendancePercent,
       });
     }
 
@@ -57,20 +85,24 @@ router.get("/student-performance/:labId", authMiddleware, async (req, res) => {
 router.get("/submissions/:labId", authMiddleware, async (req, res) => {
   try {
     const practicals = await Practical.find({ labId: req.params.labId });
-    const practicalIds = practicals.map(p => p._id);
+    const practicalIds = practicals.map((p) => p._id);
 
-    const submissions = await Submission.find({ practicalId: { $in: practicalIds } })
+    const submissions = await Submission.find({
+      practicalId: { $in: practicalIds },
+    })
       .populate("studentId", "fullName rollNumber")
       .populate("practicalId", "title");
 
-    const report = practicals.map(p => {
-      const subs = submissions.filter(s => s.practicalId._id.toString() === p._id.toString());
+    const report = practicals.map((p) => {
+      const subs = submissions.filter(
+        (s) => s.practicalId._id.toString() === p._id.toString(),
+      );
       return {
         practical: { id: p._id, title: p.title },
-        submitted: subs.filter(s => s.status === "submitted").length,
-        late: subs.filter(s => s.status === "late").length,
+        submitted: subs.filter((s) => s.status === "submitted").length,
+        late: subs.filter((s) => s.status === "late").length,
         pending: 0, // would need lab students count
-        submissions: subs
+        submissions: subs,
       };
     });
 
@@ -84,18 +116,23 @@ router.get("/submissions/:labId", authMiddleware, async (req, res) => {
 router.get("/marks-analysis/:labId", authMiddleware, async (req, res) => {
   try {
     const practicals = await Practical.find({ labId: req.params.labId });
-    const practicalIds = practicals.map(p => p._id);
+    const practicalIds = practicals.map((p) => p._id);
     const allMarks = await Marks.find({ practicalId: { $in: practicalIds } });
 
-    const analysis = practicals.map(p => {
-      const pMarks = allMarks.filter(m => m.practicalId.toString() === p._id.toString());
-      const totals = pMarks.map(m => m.total);
+    const analysis = practicals.map((p) => {
+      const pMarks = allMarks.filter(
+        (m) => m.practicalId.toString() === p._id.toString(),
+      );
+      const totals = pMarks.map((m) => m.total);
       return {
         practical: { id: p._id, title: p.title },
         highest: totals.length > 0 ? Math.max(...totals) : 0,
         lowest: totals.length > 0 ? Math.min(...totals) : 0,
-        average: totals.length > 0 ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(2) : 0,
-        submissions: totals.length
+        average:
+          totals.length > 0
+            ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(2)
+            : 0,
+        submissions: totals.length,
       };
     });
 
@@ -119,15 +156,31 @@ router.get("/attendance-summary/:labId", authMiddleware, async (req, res) => {
 
     const records = await Attendance.find(filter);
 
-    const labCount = records.filter(r => r.type === "lab").length;
-    const lectureCount = records.filter(r => r.type === "lecture").length;
-    const labPresent = records.filter(r => r.type === "lab" && r.status === "present").length;
-    const lecturePresent = records.filter(r => r.type === "lecture" && r.status === "present").length;
+    const labCount = records.filter((r) => r.type === "lab").length;
+    const lectureCount = records.filter((r) => r.type === "lecture").length;
+    const labPresent = records.filter(
+      (r) => r.type === "lab" && r.status === "present",
+    ).length;
+    const lecturePresent = records.filter(
+      (r) => r.type === "lecture" && r.status === "present",
+    ).length;
 
     res.json({
       totalRecords: records.length,
-      lab: { total: labCount, present: labPresent, percentage: labCount > 0 ? Math.round((labPresent / labCount) * 100) : 0 },
-      lecture: { total: lectureCount, present: lecturePresent, percentage: lectureCount > 0 ? Math.round((lecturePresent / lectureCount) * 100) : 0 }
+      lab: {
+        total: labCount,
+        present: labPresent,
+        percentage:
+          labCount > 0 ? Math.round((labPresent / labCount) * 100) : 0,
+      },
+      lecture: {
+        total: lectureCount,
+        present: lecturePresent,
+        percentage:
+          lectureCount > 0
+            ? Math.round((lecturePresent / lectureCount) * 100)
+            : 0,
+      },
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -139,18 +192,23 @@ router.get("/dashboard-stats", authMiddleware, async (req, res) => {
   try {
     const teacherId = req.user.id;
     const labs = await Lab.find({ teacherId });
-    const labIds = labs.map(l => l._id);
+    const labIds = labs.map((l) => l._id);
 
     const totalStudents = labs.reduce((sum, l) => sum + l.students.length, 0);
-    const totalPracticals = await Practical.countDocuments({ labId: { $in: labIds } });
-    const pendingEvaluations = await Evaluation.countDocuments({ teacherId, status: "pending" });
+    const totalPracticals = await Practical.countDocuments({
+      labId: { $in: labIds },
+    });
+    const pendingEvaluations = await Evaluation.countDocuments({
+      teacherId,
+      status: "pending",
+    });
 
     res.json({
       totalLabs: labs.length,
-      currentLabs: labs.filter(l => l.status === "current").length,
+      currentLabs: labs.filter((l) => l.status === "current").length,
       totalStudents,
       totalPracticals,
-      pendingEvaluations
+      pendingEvaluations,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

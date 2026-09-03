@@ -1,6 +1,7 @@
 import connectDB from "../config/db.js";
 import Lab from "../models/Lab.js";
 import Practical from "../models/Practical.js";
+import dijkstraPracticalConfig from "./seedDijkstraPractical.js";
 
 const curriculum = [
   {
@@ -57,7 +58,7 @@ const curriculum = [
   },
 ];
 
-// ─── Helper: test cases per topic ───
+// ─── Helper: test cases per topic ──────────────────────────────────────
 function getTestCasesForTopic(language, topic) {
   let publicTests = [];
   let hiddenTests = [];
@@ -287,7 +288,7 @@ function getTestCasesForTopic(language, topic) {
   return [...publicTests, ...hiddenTests.slice(0, 3)];
 }
 
-// ─── Helper: detailed instructions based on language & topic ───
+// ─── Helper: detailed instructions based on language & topic ────────
 function getDetailedInstructions(language, topic) {
   const langName = { c: "C", cpp: "C++", java: "Java" }[language] || language;
   const base = `Write a ${langName} program that demonstrates the concept of **"${topic}"**.\n\n`;
@@ -371,98 +372,36 @@ function getDetailedInstructions(language, topic) {
   return base + instruction;
 }
 
+// ─── Helper: starter template ──────────────────────────────────────────
 const templateFor = (language, title) => {
   if (language === "c") {
     return {
-      prefix:
-        "#include <stdio.h>\n\nint main(void) {\n    // Your code goes here\n",
-      starterSolution: `    // ${title}\n    printf("Hello, World!");`,
+      prefix: "#include <stdio.h>\n\nint main(void){ \n",
+      starterSolution: `    // Write your solution here\n    `,
       suffix: "\n    return 0;\n}\n",
     };
   }
   if (language === "cpp") {
     return {
-      prefix:
-        "#include <iostream>\nusing namespace std;\n\nint main() {\n    // Your code goes here\n",
-      starterSolution: `    // ${title}\n    cout << "Hello, World!" << endl;`,
+      prefix: "#include <iostream>\nusing namespace std;\n\nint main(){\n",
+      starterSolution: `    // Write your solution here\n    `,
       suffix: "\n    return 0;\n}\n",
     };
   }
   // Java
   return {
     prefix:
-      "public class Main {\n    public static void main(String[] args) {\n        // Your code goes here\n",
-    starterSolution: `        // ${title}\n        System.out.println("Hello, World!");`,
+      "public class Main {\n    public static void main(String[] args){\n",
+    starterSolution: `        // Write your solution here\n        `,
     suffix: "\n    }\n}\n",
   };
 };
 
-const dijkstraPracticalConfig = () => ({
-  description:
-    "Use Dijkstra's algorithm to find the shortest path distances from a source vertex in a weighted graph.",
-  instructions:
-    "Write a complete C program using the starter code below. The first line contains n and source. The next n lines contain the adjacency matrix representing the graph. Implement Dijkstra's algorithm and print the distance from the source to each vertex in the order A, B, C, ... . Use the starter only as a guide; write the actual solution in the marked section.",
-  starterTemplate: {
-    c: {
-      prefix: "",
-      starterSolution: `#include<stdio.h>
-#include<limits.h>
-#include<stdbool.h>
-
-void greedy_dijsktra(int graph[6][6], int src ){
- // write your solution here
-}
-
-int main(){
-  int graph[6][6] = {
-     {0, 1, 2, 0, 0, 0},
-     {1, 0, 0, 5, 1, 0},
-     {2, 0, 0, 2, 3, 0},
-     {0, 5, 2, 0, 2, 2},
-     {0, 1, 3, 2, 0, 1},
-     {0, 0, 0, 2, 1, 0}
-  };
-  greedy_dijsktra(graph,0);
-  return 0;
-}`,
-      suffix: "",
-    },
-  },
-  testCases: [
-    {
-      input: `6 0
-0 1 2 0 0 0
-1 0 0 5 1 0
-2 0 0 2 3 0
-0 5 2 0 2 2
-0 1 3 2 0 1
-0 0 0 2 1 0`,
-      expected: [0, 1, 2, 4, 2, 3],
-      visibility: "public",
-      weight: 1,
-      checker: "dijkstra",
-    },
-
-    {
-      input: `5 0
-0 4 1 0 0
-4 0 2 1 0
-1 2 0 5 3
-0 1 5 0 2
-0 0 3 2 0`,
-      expected: [0, 3, 1, 4, 4],
-      visibility: "hidden",
-      weight: 1,
-      checker: "dijkstra",
-    },
-  ],
-});
-
+// ─── Seed function ──────────────────────────────────────────────────────
 const seed = async () => {
   await connectDB();
-  await Lab.deleteMany({
-    session: "Shared Curriculum",
-  });
+  await Lab.deleteMany({ session: "Shared Curriculum" });
+
   for (const item of curriculum) {
     let lab = await Lab.findOne({
       subjectCode: item.subjectCode,
@@ -477,6 +416,7 @@ const seed = async () => {
         status: "current",
       });
     }
+
     for (const [index, title] of item.topics.entries()) {
       const existing = await Practical.findOne({
         labId: lab._id,
@@ -486,20 +426,18 @@ const seed = async () => {
         // Determine if this is the custom Dijkstra practical
         const customPractical =
           item.language === "c" && title === "Dijkstra's Algorithm"
-            ? dijkstraPracticalConfig()
+            ? dijkstraPracticalConfig() // ✅ uses imported function
             : null;
 
         // ── Build the practical fields based on custom or dev ──
         let description, instructions, starterTemplate, testCases;
 
         if (customPractical) {
-          // Use the custom config for Dijkstra
           description = customPractical.description;
           instructions = customPractical.instructions;
           starterTemplate = customPractical.starterTemplate;
           testCases = customPractical.testCases;
         } else {
-          // Use the dev helpers for everything else
           description = `Core ${item.name} exercise: ${title}.`;
           instructions = getDetailedInstructions(item.language, title);
           starterTemplate = {
@@ -508,7 +446,6 @@ const seed = async () => {
           testCases = getTestCasesForTopic(item.language, title);
         }
 
-        // ── Create the practical ──
         await Practical.create({
           labId: lab._id,
           title: `${index + 1}. ${title}`,
@@ -527,7 +464,8 @@ const seed = async () => {
       }
     }
   }
-    console.log(
+
+  console.log(
     "Academic C, C++, and Java curricula seeded with detailed instructions, plus Dijkstra's Algorithm custom practical.",
   );
   process.exit(0);

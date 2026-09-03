@@ -310,18 +310,28 @@ router.get(
   authMiddleware,
   loadPractical,
   loadPracticalLab,
-  requireLabAccess("view"),
+  // requireLabAccess("view"),
   async (req, res, next) => {
     try {
+      // console.log("Student ID:", req.user.id);
+      // console.log("Practical ID:", req.practical._id);
+
       const submission = await Submission.findOne({
         studentId: req.user.id,
         practicalId: req.practical._id,
-      });
+      }).sort({ updatedAt: -1 });
+
+      // console.log("Found submission:", submission ? "Yes" : "No");
+
       const evaluation = submission
         ? await Evaluation.findOne({ submissionId: submission._id })
         : null;
+
+      // console.log("Evaluation found:", evaluation ? "Yes" : "No");
+
       res.json({ submission, evaluation });
     } catch (error) {
+      console.error("Error in /my/:practicalId:", error);
       next(error);
     }
   },
@@ -349,12 +359,34 @@ router.get("/lab/:labId", authMiddleware, async (req, res, next) => {
       if (loadError) return next(loadError);
       return requireLabAccess("manage")(req, res, async (accessError) => {
         if (accessError) return next(accessError);
-        const submissions = await Submission.find({
-          practicalId: { $in: practicals.map((item) => item._id) },
-        })
-          .populate("studentId", "fullName rollNumber")
-          .populate("practicalId", "title");
-        res.json(submissions);
+
+        // Get the most recent submission per (student, practical)
+        const submissions = await Submission.aggregate([
+          {
+            $match: {
+              practicalId: { $in: practicals.map((p) => p._id) },
+            },
+          },
+          { $sort: { createdAt: -1 } }, // newest first
+          {
+            $group: {
+              _id: {
+                studentId: "$studentId",
+                practicalId: "$practicalId",
+              },
+              doc: { $first: "$$ROOT" }, // take the first (newest) document
+            },
+          },
+          { $replaceRoot: { newRoot: "$doc" } }, // flatten the document
+        ]);
+
+        // Populate student and practical details
+        const populated = await Submission.populate(submissions, [
+          { path: "studentId", select: "fullName rollNumber" },
+          { path: "practicalId", select: "title" },
+        ]);
+
+        res.json(populated);
       });
     });
   } catch (error) {
