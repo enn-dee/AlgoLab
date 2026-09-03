@@ -178,11 +178,30 @@ export default function StudentLabDetail() {
     if (template) {
       setEditorPrefix(template.prefix || "");
       setEditorSuffix(template.suffix || "");
-      setCode(template.starterSolution || "");
     } else {
       setEditorPrefix("");
       setEditorSuffix("");
-      setCode(practical.starterCode || "# Write your solution here\n");
+    }
+
+    try {
+      const res = await apiFetch(`submissions/my/${practical._id}`);
+      const data = await res.json();
+
+      if (data?.submission?.code) {
+        setCode(data.submission.code);
+      } else {
+        setCode(
+          template?.starterSolution ||
+            practical.starterCode ||
+            "# Write your solution here\n",
+        );
+      }
+    } catch (err) {
+      setCode(
+        template?.starterSolution ||
+          practical.starterCode ||
+          "# Write your solution here\n",
+      );
     }
   }, []);
 
@@ -554,22 +573,36 @@ export default function StudentLabDetail() {
                       </div>
 
                       <div className="flex gap-2 shrink-0">
-                        <button
-                          onClick={() => openEditor(p)}
-                          disabled={isPastDeadline}
-                          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm transition ${
-                            isPastDeadline
-                              ? "bg-gray-600/20 border-gray-500/30 text-gray-500 cursor-not-allowed"
-                              : "bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/30"
-                          }`}
-                        >
-                          <Code2 size={15} />
-                          {isPastDeadline
-                            ? "Closed"
-                            : submissions[p._id]
-                              ? "Edit Code"
-                              : "Write Code"}
-                        </button>
+                        {/* ── Code button ── */}
+                        {!(
+                          lab.kind === "academic" &&
+                          practicalEval?.status === "approved"
+                        ) ? (
+                          <button
+                            onClick={() => openEditor(p)}
+                            disabled={isPastDeadline}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm transition ${
+                              isPastDeadline
+                                ? "bg-gray-600/20 border-gray-500/30 text-gray-500 cursor-not-allowed"
+                                : "bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/30"
+                            }`}
+                          >
+                            <Code2 size={15} />
+                            {isPastDeadline
+                              ? "Closed"
+                              : submissions[p._id]
+                                ? "Edit Code"
+                                : "Write Code"}
+                          </button>
+                        ) : (
+                          // Approved badge (only shown for academic labs)
+                          <span className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-400/20 text-emerald-300 text-sm font-medium">
+                            <CheckCircle size={15} />
+                            Completed
+                          </span>
+                        )}
+
+                        {/* ── Instructions button (unchanged) ── */}
                         {p.instructions && (
                           <button
                             onClick={() => {
@@ -909,12 +942,12 @@ export default function StudentLabDetail() {
                       >
                         Test {index + 1}: {result.passed ? "Passed" : "Failed"}
                       </span>
-                      {/* {!result.hidden && !result.passed && (
+                      {!result.hidden && !result.passed && (
                         <p className="mt-1 text-gray-400">
                           Expected: {String(result.expected ?? "")} · Actual:{" "}
                           {result.actualOutput || "(no output)"}
                         </p>
-                      )} */}
+                      )}
                     </div>
                   ))}
                 </div>

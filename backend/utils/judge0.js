@@ -1,20 +1,9 @@
 const languageIds = { python: 71, javascript: 63, c: 50, cpp: 54, java: 62 };
 
-const normalise = (value) => String(value ?? "").replace(/\r\n/g, "\n").trim();
-const extractNumericValues = (value) => {
-  const text = String(value ?? "");
-  const matches = text.match(/-?\d+(?:\.\d+)?/g) ?? [];
-  return matches.map(Number);
-};
-const expectedNumericValues = (value) => {
-  if (Array.isArray(value)) return value.map((n) => Number(n));
-  if (typeof value === "number") return [Number(value)];
-  if (typeof value === "string") return extractNumericValues(value);
-  if (value && typeof value === "object") {
-    return Object.values(value).map((entry) => Number(entry));
-  }
-  return [];
-};
+const normalise = (value) =>
+  String(value ?? "")
+    .replace(/\r\n/g, "\n")
+    .trim();
 const inputFor = (input) => {
   if (typeof input === "string") return input;
   if (Array.isArray(input)) return input.join(" ");
@@ -24,57 +13,65 @@ const inputFor = (input) => {
 
 const defaultExecution = { timeLimitSeconds: 5, memoryLimitKb: 128000 };
 
-const matchesExpectedOutput = (testCase, actualOutput, stderr, compileOutput) => {
-  if (stderr || compileOutput) return false;
+// ─── Helper: encode to base64 ────────────────────────────────
+const encodeBase64 = (str) => Buffer.from(str, "utf-8").toString("base64");
 
-  if (testCase.checker === "dijkstra") {
-    const expectedNumbers = expectedNumericValues(testCase.expected);
-    const actualNumbers = extractNumericValues(actualOutput);
-    if (!expectedNumbers.length || actualNumbers.length !== expectedNumbers.length) {
-      return false;
-    }
-    return actualNumbers.every((value, index) => value === expectedNumbers[index]);
-  }
-
-  if (Array.isArray(testCase.expected) || typeof testCase.expected === "number") {
-    const expectedNumbers = expectedNumericValues(testCase.expected);
-    const actualNumbers = extractNumericValues(actualOutput);
-    if (!expectedNumbers.length || actualNumbers.length !== expectedNumbers.length) {
-      return false;
-    }
-    return actualNumbers.every((value, index) => value === expectedNumbers[index]);
-  }
-
-  return actualOutput === normalise(testCase.expected);
-};
-
-export async function runJudge0Simple({ sourceCode, language, stdin = "", execution = defaultExecution }) {
+export async function runJudge0Simple({
+  sourceCode,
+  language,
+  stdin = "",
+  execution = defaultExecution,
+}) {
   const languageId = languageIds[language];
   if (!languageId) throw new Error("Unsupported execution language");
-  const endpoint = process.env.JUDGE0_URL || "https://ce.judge0.com/submissions?base64_encoded=false&wait=true";
+
+  // Use base64 encoding
+  const endpoint =
+    process.env.JUDGE0_URL ||
+    "https://ce.judge0.com/submissions?base64_encoded=true&wait=true";
+
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(),
     (execution.timeLimitSeconds + 5) * 1000,
   );
+
   try {
     const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: controller.signal,
       body: JSON.stringify({
-        source_code: sourceCode,
+        source_code: encodeBase64(sourceCode),
         language_id: languageId,
-        stdin,
+        stdin: encodeBase64(stdin),
         cpu_time_limit: execution.timeLimitSeconds,
         memory_limit: execution.memoryLimitKb,
       }),
     });
-    if (!response.ok) throw new Error(`Code runner returned ${response.status}`);
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error("Judge0 error response:", errorBody);
+      throw new Error(`Code runner returned ${response.status}: ${errorBody}`);
+    }
+
     const data = await response.json();
+
+    // Judge0 returns base64-encoded stdout/stderr when base64_encoded=true
+    const stdout = data.stdout
+      ? Buffer.from(data.stdout, "base64").toString("utf-8")
+      : "";
+    const stderr = data.stderr
+      ? Buffer.from(data.stderr, "base64").toString("utf-8")
+      : "";
+    const compile_output = data.compile_output
+      ? Buffer.from(data.compile_output, "base64").toString("utf-8")
+      : "";
+
     return {
-      stdout: data.stdout ?? "",
-      stderr: data.stderr ?? data.compile_output ?? "",
+      stdout: stdout ?? "",
+      stderr: stderr || compile_output || "",
       runtimeMs: data.time ? Math.round(Number(data.time) * 1000) : undefined,
       memoryKb: data.memory,
     };
@@ -83,37 +80,74 @@ export async function runJudge0Simple({ sourceCode, language, stdin = "", execut
   }
 }
 
-export async function runJudge0Cases({ sourceCode, language, testCases, execution }) {
+export async function runJudge0Cases({
+  sourceCode,
+  language,
+  testCases,
+  execution,
+}) {
   const languageId = languageIds[language];
   if (!languageId) throw new Error("Unsupported execution language");
-  const endpoint = process.env.JUDGE0_URL || "https://ce.judge0.com/submissions?base64_encoded=false&wait=true";
+
+  const endpoint =
+    process.env.JUDGE0_URL ||
+    "https://ce.judge0.com/submissions?base64_encoded=true&wait=true";
   const results = [];
+
   for (const testCase of testCases) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), (execution.timeLimitSeconds + 5) * 1000);
+    const timeout = setTimeout(
+      () => controller.abort(),
+      (execution.timeLimitSeconds + 5) * 1000,
+    );
+
     try {
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({
-          source_code: sourceCode,
+          source_code: encodeBase64(sourceCode),
           language_id: languageId,
-          stdin: inputFor(testCase.input),
+          stdin: encodeBase64(inputFor(testCase.input)),
           cpu_time_limit: execution.timeLimitSeconds,
           memory_limit: execution.memoryLimitKb,
         }),
       });
-      if (!response.ok) throw new Error(`Code runner returned ${response.status}`);
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error("Judge0 error response:", errorBody);
+        throw new Error(
+          `Code runner returned ${response.status}: ${errorBody}`,
+        );
+      }
+
       const data = await response.json();
-      const actualOutput = normalise(data.stdout);
+
+      const stdout = data.stdout
+        ? Buffer.from(data.stdout, "base64").toString("utf-8")
+        : "";
+      const stderr = data.stderr
+        ? Buffer.from(data.stderr, "base64").toString("utf-8")
+        : "";
+      const compile_output = data.compile_output
+        ? Buffer.from(data.compile_output, "base64").toString("utf-8")
+        : "";
+
+      const actualOutput = normalise(stdout);
+      const expectedNorm = normalise(String(testCase.expected ?? ""));
+
       results.push({
         caseId: testCase._id,
-        passed: matchesExpectedOutput(testCase, actualOutput, data.stderr, data.compile_output),
+        passed: !stderr && !compile_output && actualOutput === expectedNorm,
         weight: testCase.weight || 1,
         runtimeMs: data.time ? Math.round(Number(data.time) * 1000) : undefined,
         memoryKb: data.memory,
         actualOutput,
+        expected: testCase.expected,
+        input: testCase.input,
+        visibility: testCase.visibility,
       });
     } finally {
       clearTimeout(timeout);
